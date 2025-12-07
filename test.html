@@ -3,764 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Traducteur Morse Optique & Audio</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        /* Configuration de base Tailwind et polices */
-        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;500;700&display=swap');
+    <title>PWA - Rendre l'App Installable</title>
+    <!-- 1. Lien vers le Manifest PWA -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- 2. Configuration des couleurs pour le thème mobile -->
+    <meta name="theme-color" content="#4f46e5">
 
+    <!-- Chargement de Tailwind CSS pour le style -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Définition de la police Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0d1117; /* Fond très sombre */
-            color: #c9d1d9; /* Texte clair par défaut */
-            transition: background-color 0.05s ease;
+            background-color: #f3f4f6;
         }
-
-        /* Styles pour l'effet Lampe Torche (Flash Écran) */
-        body.flash-active {
-            background-color: #ffffff !important; /* Blanc total pour le flash */
-        }
-        
-        /* Les éléments de l'interface doivent s'adapter au mode flash */
-        body.flash-active .flash-invert-bg {
-            background-color: #f0f6fc !important;
-            border-color: #d1d9e6 !important;
-            color: #0d1117 !important;
-        }
-        body.flash-active textarea {
-            background-color: #f8fafd !important;
-            color: #0d1117 !important;
-            border-color: #e2e8f0 !important;
-        }
-
-        /* Police spécifique pour les codes et les entrées/sorties */
-        .mono-code {
-            font-family: 'Space Mono', monospace;
-        }
-
-        /* Style du bouton d'action */
-        .btn-modern {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .btn-modern:hover {
-            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
-            transform: translateY(-1px);
-        }
-        .btn-modern:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Signal Lumineux (Ampoule) */
-        #signal-bulb {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: #161b22;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-            transition: all 0.05s ease;
-        }
-        .signal-active {
-            background-color: #00bcd4; /* Cyan/Bleu Vif */
-            box-shadow: 0 0 30px 10px rgba(0, 188, 212, 0.9), 0 0 50px 15px rgba(0, 188, 212, 0.5);
-        }
-        .signal-active #bulb-icon {
-            color: #ffffff !important;
-            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.8));
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #161b22;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #30363d;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #484f58;
-        }
-
-        /* Champ de texte */
-        textarea {
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        /* Responsive adjustments */
-        @media (min-width: 1024px) {
-            /* Adjust swap button position on desktop */
-            #swap-btn {
-                left: 50%;
-                top: 50%;
-                transform: translate(-50%, -50%);
-            }
+        /* Style pour simuler l'installation */
+        .install-button {
+            display: none; /* Masqué par défaut, affiché par le JS si l'installation est possible */
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center">
+<body class="min-h-screen flex items-center justify-center p-4">
 
-    <header class="w-full bg-[#161b22] border-b border-[#30363d] p-4 sticky top-0 z-50 shadow-lg">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <i class="fa-solid fa-code-branch text-cyan-400 text-3xl"></i>
-                <h1 class="text-2xl font-extrabold text-white tracking-wider">Traducteur <span class="text-cyan-400">Morse Optique</span></h1>
-            </div>
-            <div class="text-sm text-[#8b949e] font-mono hidden sm:block">
-                ... --- ...
-            </div>
-        </div>
-    </header>
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg text-gray-800 border-t-4 border-indigo-600">
+        <h1 class="text-3xl font-bold mb-4 text-indigo-600">Application PWA Démo</h1>
+        <p class="mb-6 text-gray-600">
+            Ceci est une application web progressive. Grâce au **Service Worker** et au **Manifest**, elle est maintenant installable et fonctionne hors ligne.
+        </p>
 
-    <main class="flex-grow p-4 md:p-8 max-w-7xl w-full">
-        
-        <div class="flex flex-col items-center mb-8">
-            <div id="signal-bulb" class="flex items-center justify-center cursor-pointer" title="Indicateur Visuel">
-                <i class="fa-solid fa-satellite-dish text-5xl text-[#30363d]" id="bulb-icon"></i>
-            </div>
-            <div class="text-sm text-cyan-400 font-bold mt-2" id="playing-status">PRÊT</div>
+        <div id="status-message" class="p-3 mb-4 rounded-lg bg-gray-100 border border-gray-300 text-sm">
+            Statut du Service Worker : En attente d'enregistrement...
         </div>
 
-        <video id="videoElement" autoplay muted style="display: none;"></video>
-        <canvas id="analysisCanvas" style="display: none;"></canvas>
+        <button id="installButton" class="install-button w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-indigo-700 transition duration-300 shadow-md">
+            Installer l'Application
+        </button>
 
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 relative">
-            
-            <div class="lg:col-span-2 bg-[#161b22] rounded-2xl p-6 shadow-2xl border border-[#30363d] flex flex-col h-[450px] flash-invert-bg">
-                <div class="flex justify-between items-center mb-4">
-                    <label class="text-[#8b949e] font-medium text-sm uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-keyboard text-cyan-400"></i> Texte Source
-                    </label>
-                    <button onclick="clearInput('inputText')" class="text-red-400 hover:text-red-500 text-xs font-bold transition-colors">
-                        Effacer
-                    </button>
-                </div>
-                <textarea 
-                    id="inputText" 
-                    placeholder="Entrez votre message en français ici..." 
-                    class="w-full flex-grow bg-[#0d1117] text-[#c9d1d9] p-4 rounded-lg focus:ring-2 focus:ring-cyan-500 outline-none resize-none mono-code text-lg border border-[#30363d] placeholder-[#30363d]"
-                    oninput="convertToMorse()"
-                ></textarea>
-                <div class="flex justify-end mt-4 gap-3">
-                    <button onclick="pasteText()" class="btn-modern bg-[#30363d] hover:bg-[#484f58] text-white py-2 px-4 rounded-full text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-paste"></i> Coller
-                    </button>
-                    <button onclick="copyToClipboard('inputText', 'Texte Source Copié !')" class="btn-modern bg-[#30363d] hover:bg-[#484f58] text-white py-2 px-4 rounded-full text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-copy"></i> Copier
-                    </button>
-                </div>
-            </div>
-
-            <button id="swap-btn" onclick="swapText()" class="hidden lg:flex absolute bg-cyan-600 hover:bg-cyan-500 text-white w-12 h-12 rounded-full items-center justify-center shadow-xl z-10 btn-modern border-4 border-[#0d1117]" title="Inverser les champs / Réinitialiser">
-                <i class="fa-solid fa-arrows-left-right text-lg"></i>
-            </button>
-
-            <div class="lg:col-span-3 bg-[#161b22] rounded-2xl p-6 shadow-2xl border border-[#30363d] flex flex-col h-[450px] flash-invert-bg">
-                <div class="flex justify-between items-center mb-4">
-                    <label class="text-[#8b949e] font-medium text-sm uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-wave-square text-emerald-400"></i> Code Morse Résultat
-                    </label>
-                    <button onclick="copyToClipboard('outputText', 'Code Morse Copié !')" class="text-white bg-emerald-600 hover:bg-emerald-500 py-1.5 px-3 rounded-full text-sm font-bold btn-modern">
-                        <i class="fa-solid fa-copy mr-1"></i> Copier Morse
-                    </button>
-                </div>
-                <textarea 
-                    id="outputText" 
-                    placeholder="Le code Morse traduit apparaîtra ici..." 
-                    class="w-full flex-grow bg-[#0d1117] text-emerald-400 p-4 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none resize-none mono-code text-xl border border-[#30363d] placeholder-[#30363d] leading-relaxed"
-                    oninput="convertToText()"
-                ></textarea>
-                
-                <div class="grid grid-cols-4 gap-3 mt-4">
-                    <div class="col-span-2">
-                        <button id="playBtn" onclick="playMorse()" class="btn-modern bg-cyan-600 hover:bg-cyan-500 text-white w-full py-3 rounded-full font-bold flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-play"></i> Écouter le Signal
-                        </button>
-                        <button id="stopBtn" onclick="stopMorse()" class="btn-modern bg-red-600 hover:bg-red-500 text-white w-full py-3 rounded-full font-bold flex items-center justify-center gap-2 hidden">
-                            <i class="fa-solid fa-stop"></i> Arrêter Émission
-                        </button>
-                    </div>
-
-                    <div class="col-span-2 flex flex-col justify-center">
-                        <label for="wpm" class="text-xs text-[#8b949e] mb-1">Vitesse (WPM: <span id="wpmValue">20</span>)</label>
-                        <input type="range" id="wpm" min="5" max="40" value="20" class="w-full h-2 accent-cyan-500 cursor-pointer rounded-lg bg-[#30363d]">
-                    </div>
-                    
-                    <button id="flashToggleBtn" onclick="toggleFlashlightMode()" class="col-span-2 btn-modern bg-[#30363d] hover:bg-[#484f58] text-white py-3 rounded-full font-medium flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-mobile-screen-button"></i> Flash Écran : <span id="flashStatus">OFF</span>
-                    </button>
-                    
-                    <div class="col-span-2">
-                        <button id="cameraStartBtn" onclick="toggleCameraAnalysis()" class="btn-modern bg-emerald-600 hover:bg-emerald-500 text-white w-full py-3 rounded-full font-bold flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-video"></i> Démarrer Caméra
-                        </button>
-                        <button id="cameraStopBtn" onclick="toggleCameraAnalysis()" class="btn-modern bg-red-600 hover:bg-red-500 text-white w-full py-3 rounded-full font-bold flex items-center justify-center gap-2 hidden">
-                            <i class="fa-solid fa-video-slash"></i> Arrêter Caméra
-                        </button>
-                    </div>
-
-                    <div class="col-span-4 flex items-center justify-end text-sm text-[#8b949e] font-mono mt-2">
-                        <i class="fa-solid fa-volume-high mr-2 text-cyan-400"></i> Freq. Audio: 600 Hz | <i class="fa-solid fa-lightbulb ml-3 mr-2 text-emerald-400"></i> Calibrage: <span id="unitDurationDisplay">100</span>ms
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="mt-12 bg-[#161b22] rounded-2xl overflow-hidden border border-[#30363d] shadow-xl flash-invert-bg">
-            <button onclick="toggleCheatSheet()" class="w-full p-5 flex justify-between items-center text-cyan-400 hover:bg-[#1f2730] transition-colors">
-                <span class="font-extrabold text-lg uppercase tracking-wider"><i class="fa-solid fa-book-open-reader mr-3"></i> Dictionnaire du Code Morse</span>
-                <i id="chevron" class="fa-solid fa-chevron-down transition-transform text-xl"></i>
-            </button>
-            <div id="cheatSheet" class="hidden p-6 bg-[#0d1117] border-t border-[#30363d]">
-                <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 gap-3 text-sm mono-code" id="dictionary-grid">
-                    </div>
-            </div>
-        </div>
-
-    </main>
-    
-    <footer class="w-full bg-[#161b22] border-t border-[#30363d] p-4 mt-auto">
-        <div class="text-center text-[#484f58] text-sm">
-            <p>Conçu pour une communication d'urgence claire. Le point est l'unité de base.</p>
-        </div>
-    </footer>
-
-    <div id="toast" class="fixed bottom-5 right-5 bg-cyan-600 text-white px-6 py-3 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
-        <i class="fa-solid fa-circle-check text-xl"></i>
-        <span id="toast-msg" class="font-medium">Opération réussie</span>
+        <p class="mt-4 text-xs text-gray-500 text-center">
+            (Le bouton d'installation apparaîtra lorsque le navigateur le permettra.)
+        </p>
     </div>
 
     <script>
-        // --- DATA ---
-        const MORSE_CODE = {
-            'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.',
-            'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
-            'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.',
-            'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-',
-            'Y': '-.--', 'Z': '--..',
-            '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....',
-            '6': '-....', '7': '--...', '8': '---..', '9': '----.', '0': '-----',
-            ' ': '/', '.': '.-.-.-', ',': '--..--', '?': '..-..-', "'": '.----.',
-            '!': '-.-.--', '/': '-..-.', '(': '-.--.', ')': '-.--.-', '&': '.-...',
-            ':': '---...', ';': '-.-.-.', '=': '-...-', '+': '.-.-.', '-': '-....-',
-            '_': '..--.-', '"': '.-..-.', '$': '...-..-', '@': '.--.-.'
-        };
+        // Configuration PWA et Service Worker
+        
+        let deferredPrompt;
+        const installButton = document.getElementById('installButton');
+        const statusMessage = document.getElementById('status-message');
+        const serviceWorkerPath = '/service-worker.js';
 
-        const REVERSE_MORSE = Object.fromEntries(Object.entries(MORSE_CODE).map(([k, v]) => [v, k]));
+        // 3. Enregistrement du Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register(serviceWorkerPath, { scope: '/' })
+                    .then((registration) => {
+                        console.log('Service Worker enregistré avec succès. Scope:', registration.scope);
+                        statusMessage.textContent = 'Statut du Service Worker : Enregistré et opérationnel (hors ligne activé)';
+                        statusMessage.classList.remove('bg-gray-100');
+                        statusMessage.classList.add('bg-green-100', 'text-green-800');
+                    })
+                    .catch((error) => {
+                        console.error('Échec de l\'enregistrement du Service Worker:', error);
+                        statusMessage.textContent = 'Statut du Service Worker : Erreur lors de l\'enregistrement';
+                        statusMessage.classList.remove('bg-gray-100');
+                        statusMessage.classList.add('bg-red-100', 'text-red-800');
+                    });
+            });
+        } else {
+             statusMessage.textContent = 'Statut du Service Worker : Non supporté par ce navigateur.';
+             statusMessage.classList.remove('bg-gray-100');
+             statusMessage.classList.add('bg-orange-100', 'text-orange-800');
+        }
 
-        // --- DOM ELEMENTS ---
-        const inputText = document.getElementById('inputText');
-        const outputText = document.getElementById('outputText');
-        const signalBulb = document.getElementById('signal-bulb');
-        const bulbIcon = document.getElementById('bulb-icon');
-        const wpmInput = document.getElementById('wpm');
-        const wpmValueDisplay = document.getElementById('wpmValue');
-        const flashToggleBtn = document.getElementById('flashToggleBtn');
-        const flashStatusDisplay = document.getElementById('flashStatus');
-        const playingStatusDisplay = document.getElementById('playing-status');
-        const unitDurationDisplay = document.getElementById('unitDurationDisplay'); // Nouveau
-        const cameraStartBtn = document.getElementById('cameraStartBtn');
-        const cameraStopBtn = document.getElementById('cameraStopBtn');
-
-        // --- GLOBAL STATE (Audio/Visual Playback) ---
-        let audioCtx = null;
-        let isPlaying = false;
-        let stopSignal = false;
-        let isFlashEnabled = false;
-        const FIXED_FREQUENCY = 600;
-
-        // --- GLOBAL STATE (Camera Analysis) ---
-        const videoElement = document.getElementById('videoElement');
-        const canvas = document.getElementById('analysisCanvas');
-        const ctx = canvas.getContext('2d');
-        let cameraStream = null;
-        let analysisLoop = null; // Pour requestAnimationFrame
-        let isCameraActive = false;
-
-        let lastLightState = false; // true = Flash ON, false = Flash OFF
-        let lastEventTime = Date.now();
-        let morseSequence = '';
-        let unitDurationEstimate = 100; // Unité de temps (Dit) en ms
-        const BRIGHTNESS_THRESHOLD = 150; // Seuil de luminosité pour détecter le flash
-        const MAX_WPM_FOR_CALIBRATION = 40; // Limite la vitesse d'analyse pour éviter les erreurs
-        const MIN_WPM_FOR_CALIBRATION = 5;
-
-        // --- INITIALIZATION ---
-        wpmInput.addEventListener('input', () => {
-            wpmValueDisplay.textContent = wpmInput.value;
+        // Gestion de l'événement d'installation ('beforeinstallprompt')
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Empêche le navigateur de montrer sa propre invite d'installation
+            e.preventDefault();
+            // Stocke l'événement pour pouvoir le déclencher plus tard
+            deferredPrompt = e;
+            // Affiche le bouton d'installation personnalisé
+            installButton.style.display = 'block';
+            installButton.classList.remove('install-button'); 
         });
 
-        wpmValueDisplay.textContent = wpmInput.value;
-        initCheatSheet();
-
-
-        // --- CONVERSION LOGIC ---
-        function convertToMorse() {
-            const text = inputText.value.toUpperCase();
-            let result = "";
-            
-            for (let char of text) {
-                if (char === '\n') {
-                    result += '\n';
-                } else if (MORSE_CODE[char]) {
-                    result += MORSE_CODE[char] + " ";
-                } else if (char === ' ') {
-                    result += "/ "; // Slash for word separation
+        // Gestion du clic sur le bouton d'installation
+        installButton.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                // Masque le bouton pendant la tentative d'installation
+                installButton.style.display = 'none';
+                
+                // Déclenche l'invite d'installation du navigateur
+                deferredPrompt.prompt();
+                
+                // Attend que l'utilisateur réponde à l'invite
+                const { outcome } = await deferredPrompt.userChoice;
+                
+                if (outcome === 'accepted') {
+                    console.log('L\'utilisateur a accepté l\'installation.');
+                    statusMessage.textContent = 'Application installée avec succès !';
                 } else {
-                    result += "# "; // Non-traduisible
-                }
-            }
-            outputText.value = result.trim();
-        }
-
-        function convertToText() {
-            const morse = outputText.value.trim();
-            const words = morse.split('/'); // Split by words first
-            let result = "";
-
-            words.forEach((word, wordIndex) => {
-                const chars = word.trim().split(/\s+/); // Split by spaces (letters)
-                chars.forEach(char => {
-                    if (REVERSE_MORSE[char]) {
-                        result += REVERSE_MORSE[char];
-                    } else if (char === '') {
-                        // ignore empty
-                    } else {
-                        result += "[?]"; // Indicateur d'erreur
-                    }
-                });
-                if (wordIndex < words.length - 1) {
-                    result += " ";
-                }
-            });
-            
-            inputText.value = result.trim();
-        }
-
-        function swapText() {
-            inputText.value = "";
-            outputText.value = "";
-            morseSequence = ''; // Réinitialiser la séquence optique
-            showToast("Champs de traduction réinitialisés");
-        }
-        
-        // --- AUDIO/VISUAL PLAYBACK ENGINE ---
-        // (Les fonctions playMorse, stopMorse, playTone et wait restent inchangées)
-
-        async function playMorse() {
-            if (isPlaying) return;
-            const morse = outputText.value.trim();
-            if (!morse) {
-                showToast("Veuillez saisir du Code Morse à jouer !");
-                return;
-            }
-
-            // Init Audio Context
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-
-            isPlaying = true;
-            stopSignal = false;
-            updatePlayUI(true);
-
-            const wpm = parseInt(wpmInput.value);
-            const freq = FIXED_FREQUENCY;
-            const unitTime = 1200 / wpm; // T = 1200 / WPM
-
-            for (let i = 0; i < morse.length; i++) {
-                if (stopSignal) break;
-
-                const char = morse[i];
-                
-                // --- Visual/Audio Synchronization ---
-                if (char === '.' || char === '-') {
-                    const duration = char === '.' ? unitTime : unitTime * 3;
-                    
-                    toggleSignal(true, char); // Signal ON (visuel/flash + audio)
-                    playTone(freq, duration); 
-                    await wait(duration);
-                    
-                    toggleSignal(false); // Signal OFF (visuel/flash)
-                    await wait(unitTime); // Gap (1 unit)
-                } else if (char === ' ') {
-                    // Gap between letters (3 units total, we already waited 1 after the last dot/dash)
-                    await wait(unitTime * 2); 
-                } else if (char === '/') {
-                    // Gap between words (7 units total, we already waited 1 after the last dot/dash)
-                    await wait(unitTime * 6);
-                }
-            }
-
-            isPlaying = false;
-            stopSignal = false;
-            updatePlayUI(false);
-            toggleSignal(false);
-        }
-
-        function stopMorse() {
-            if (isPlaying) {
-                stopSignal = true;
-                if(audioCtx) audioCtx.suspend();
-                toggleSignal(false); 
-                updatePlayUI(false);
-                showToast("Signal arrêté");
-                setTimeout(() => { if(audioCtx) audioCtx.resume(); }, 100);
-            }
-        }
-
-        function playTone(freq, duration) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-
-            osc.type = 'sine';
-            osc.frequency.value = freq;
-            
-            // Smooth attack/release to avoid clicking
-            gain.gain.setValueAtTime(0, audioCtx.currentTime);
-            gain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.01);
-            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + (duration / 1000) - 0.01);
-
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-
-            osc.start();
-            osc.stop(audioCtx.currentTime + (duration / 1000));
-        }
-
-        function wait(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
-
-        // --- CAMERA ANALYSIS LOGIC (Nouveau) ---
-
-        function toggleCameraAnalysis() {
-            if (isCameraActive) {
-                stopCameraAnalysis();
-            } else {
-                startCameraAnalysis();
-            }
-        }
-
-        async function startCameraAnalysis() {
-            if (isCameraActive) return;
-
-            try {
-                // 1. Accès à la caméra
-                cameraStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "environment" } // Préfère la caméra arrière sur mobile
-                });
-                videoElement.srcObject = cameraStream;
-                videoElement.play();
-
-                videoElement.addEventListener('loadeddata', () => {
-                    canvas.width = videoElement.videoWidth;
-                    canvas.height = videoElement.videoHeight;
-                    // Démarrer la boucle d'analyse de l'image
-                    isCameraActive = true;
-                    updateCameraUI(true);
-                    morseSequence = '';
-                    lastLightState = false;
-                    lastEventTime = Date.now();
-                    analysisLoop = requestAnimationFrame(analyzeFrame);
-                    showToast("Analyse Morse par caméra DÉMARRÉE.");
-                }, { once: true });
-
-            } catch (err) {
-                console.error("Erreur d'accès à la caméra:", err);
-                showToast("Erreur: Accès à la caméra refusé ou impossible. Vérifiez les autorisations.");
-            }
-        }
-
-        function stopCameraAnalysis() {
-            if (!isCameraActive) return;
-
-            if (cameraStream) {
-                cameraStream.getTracks().forEach(track => track.stop());
-                cameraStream = null;
-            }
-            cancelAnimationFrame(analysisLoop);
-            isCameraActive = false;
-            updateCameraUI(false);
-            showToast("Analyse Morse par caméra ARRÊTÉE.");
-        }
-
-        function analyzeFrame() {
-            if (!isCameraActive) return;
-
-            // 2. Dessiner la frame sur le canvas
-            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-
-            // 3. Lire les données de pixels pour la luminosité (zone centrale)
-            const regionSize = 20; // Analyse d'un carré de 20x20 pixels au centre
-            const centerX = Math.floor(canvas.width / 2);
-            const centerY = Math.floor(canvas.height / 2);
-
-            try {
-                const imageData = ctx.getImageData(centerX - regionSize/2, centerY - regionSize/2, regionSize, regionSize).data;
-                let totalBrightness = 0;
-                // Calculer la luminosité moyenne (Luma approximatif)
-                for (let i = 0; i < imageData.length; i += 4) {
-                    // Luma Y = 0.299*R + 0.587*G + 0.114*B (approx)
-                    totalBrightness += (imageData[i] * 0.299 + imageData[i + 1] * 0.587 + imageData[i + 2] * 0.114);
-                }
-                const pixelCount = (imageData.length / 4);
-                const averageBrightness = totalBrightness / pixelCount;
-
-                // 4. Déterminer l'état du flash
-                const currentLightState = averageBrightness > BRIGHTNESS_THRESHOLD;
-
-                const currentTime = Date.now();
-                const duration = currentTime - lastEventTime;
-
-                if (currentLightState !== lastLightState) {
-                    
-                    if (lastLightState) {
-                        // Light ON -> Light OFF (Fin d'un Point ou Trait)
-                        processFlashDuration(duration);
-                    } else {
-                        // Light OFF -> Light ON (Fin d'une Pause)
-                        processSpaceDuration(duration);
-                    }
-
-                    lastLightState = currentLightState;
-                    lastEventTime = currentTime;
+                    console.log('L\'utilisateur a refusé l\'installation.');
+                    statusMessage.textContent = 'L\'installation a été annulée.';
+                    // Laisse le bouton affiché si l'utilisateur annule
+                    installButton.style.display = 'block';
                 }
                 
-            } catch (e) {
-                console.warn("Erreur d'analyse d'image (probablement hors-champ)", e);
+                // Réinitialise deferredPrompt
+                deferredPrompt = null;
             }
-
-            analysisLoop = requestAnimationFrame(analyzeFrame);
-        }
-
-        function processFlashDuration(duration) {
-            // Mise à jour de l'estimation de l'unité de temps basée sur la durée moyenne de tous les points/traits
-            const dotDuration = unitDurationEstimate;
-            const dashDuration = unitDurationEstimate * 3;
-
-            // Déterminer si c'est un point ou un trait
-            // Utiliser une marge de 50%
-            if (duration >= dotDuration * 0.5 && duration < dashDuration * 1.5) {
-                
-                let morseSymbol;
-                if (duration < dotDuration * 1.5) {
-                    morseSymbol = '.'; // Point
-                    // Auto-calibration : Tente de se rapprocher de la durée du point
-                    unitDurationEstimate = (unitDurationEstimate * 9 + duration) / 10;
-                } else {
-                    morseSymbol = '-'; // Trait
-                    // Auto-calibration : Tente de se rapprocher de la durée du Trait / 3
-                    unitDurationEstimate = (unitDurationEstimate * 9 + duration / 3) / 10;
-                }
-                
-                morseSequence += morseSymbol;
-                unitDurationEstimate = Math.max(1200 / MAX_WPM_FOR_CALIBRATION, Math.min(1200 / MIN_WPM_FOR_CALIBRATION, unitDurationEstimate)); // Garde l'estimation dans une plage raisonnable (5-40 WPM)
-                unitDurationDisplay.textContent = Math.round(unitDurationEstimate);
-
-                // Mettre à jour la séquence
-                outputText.value = morseSequence;
-                convertToText();
-
-            } else {
-                // Flash ignoré (erreur de détection)
-                // morseSequence += "[Flash-Err]";
-            }
-        }
-
-        function processSpaceDuration(duration) {
-            const unitTime = unitDurationEstimate;
-            let spaceSymbol = '';
-            
-            // Pauses : 1T (entre symboles), 3T (entre lettres), 7T (entre mots)
-            
-            if (duration >= unitTime * 1.5 && duration < unitTime * 4) {
-                // Pause entre lettres (~3 unités)
-                spaceSymbol = ' ';
-            } else if (duration >= unitTime * 4) {
-                // Pause entre mots (>= 7 unités)
-                spaceSymbol = ' / ';
-            } else if (duration >= unitTime * 0.5) {
-                 // Pause entre signaux (~1 unité) - Rien à ajouter au Morse
-                 return;
-            }
-
-            // Ajouter le séparateur et nettoyer si nécessaire
-            if (spaceSymbol && !morseSequence.endsWith(spaceSymbol.trim())) {
-                morseSequence += spaceSymbol;
-                outputText.value = morseSequence;
-                convertToText();
-            }
-        }
-        
-        // --- UI HELPERS ---
-        function toggleSignal(on, type = null) {
-            // 1. Bulb (Internal UI indicator)
-            if (on) {
-                signalBulb.classList.add('signal-active');
-                bulbIcon.classList.add('fa-beat');
-            } else {
-                signalBulb.classList.remove('signal-active');
-                bulbIcon.classList.remove('fa-beat');
-            }
-
-            // 2. Body Flash (Full-screen effect, only if enabled)
-            if (isFlashEnabled) {
-                if (on) {
-                    document.body.classList.add('flash-active');
-                } else {
-                    setTimeout(() => document.body.classList.remove('flash-active'), 50);
-                }
-            }
-        }
-
-        function updatePlayUI(playing) {
-            const playBtn = document.getElementById('playBtn');
-            const stopBtn = document.getElementById('stopBtn');
-            
-            if (playing) {
-                playBtn.classList.add('hidden');
-                stopBtn.classList.remove('hidden');
-                playingStatusDisplay.textContent = "TRANSMISSION EN COURS...";
-                playingStatusDisplay.classList.add('text-red-400', 'animate-pulse');
-                
-                inputText.disabled = true;
-                outputText.disabled = true;
-                flashToggleBtn.disabled = true;
-                wpmInput.disabled = true;
-                cameraStartBtn.disabled = true; // Désactiver la caméra pendant la lecture
-            } else {
-                playBtn.classList.remove('hidden');
-                stopBtn.classList.add('hidden');
-                playingStatusDisplay.textContent = "PRÊT";
-                playingStatusDisplay.classList.remove('text-red-400', 'animate-pulse');
-                
-                inputText.disabled = false;
-                outputText.disabled = false;
-                flashToggleBtn.disabled = false;
-                wpmInput.disabled = false;
-                cameraStartBtn.disabled = false;
-            }
-        }
-
-        function updateCameraUI(active) {
-            if (active) {
-                cameraStartBtn.classList.add('hidden');
-                cameraStopBtn.classList.remove('hidden');
-                playingStatusDisplay.textContent = "ÉCOUTE OPTIQUE EN COURS...";
-                playingStatusDisplay.classList.add('text-emerald-400', 'animate-pulse');
-
-                // Désactivation des inputs
-                inputText.disabled = true;
-                document.getElementById('playBtn').disabled = true;
-                
-            } else {
-                cameraStartBtn.classList.remove('hidden');
-                cameraStopBtn.classList.add('hidden');
-                if (!isPlaying) {
-                    playingStatusDisplay.textContent = "PRÊT";
-                    playingStatusDisplay.classList.remove('text-emerald-400', 'animate-pulse');
-                }
-                
-                // Réactivation des inputs
-                inputText.disabled = false;
-                document.getElementById('playBtn').disabled = false;
-            }
-        }
-        
-        function toggleFlashlightMode() {
-            isFlashEnabled = !isFlashEnabled;
-            
-            if (isFlashEnabled) {
-                flashToggleBtn.classList.remove('bg-[#30363d]', 'hover:bg-[#484f58]');
-                flashToggleBtn.classList.add('bg-cyan-600', 'hover:bg-cyan-500');
-                flashStatusDisplay.textContent = "ON";
-                showToast("Lampe Torche Écran : ON");
-            } else {
-                flashToggleBtn.classList.add('bg-[#30363d]', 'hover:bg-[#484f58]');
-                flashToggleBtn.classList.remove('bg-cyan-600', 'hover:bg-cyan-500');
-                flashStatusDisplay.textContent = "OFF";
-                document.body.classList.remove('flash-active');
-                showToast("Lampe Torche Écran : OFF");
-            }
-        }
-
-        function clearInput(id) {
-            document.getElementById(id).value = '';
-            if(id === 'inputText') outputText.value = '';
-            if(id === 'outputText') inputText.value = '';
-            morseSequence = '';
-            showToast('Champ effacé');
-        }
-
-        function copyToClipboard(id, message) {
-            const copyText = document.getElementById(id);
-            copyText.select();
-            copyText.setSelectionRange(0, 99999);
-            document.execCommand('copy');
-            showToast(message);
-            
-            if (window.getSelection) {window.getSelection().removeAllRanges();}
-        }
-        
-        async function pasteText() {
-            try {
-                const text = await navigator.clipboard.readText();
-                inputText.value = text;
-                convertToMorse();
-                showToast("Texte collé et traduit");
-            } catch (err) {
-                showToast("Erreur lors de l'accès au presse-papiers.");
-            }
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            const msg = document.getElementById('toast-msg');
-            msg.innerText = message;
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            toast.classList.add('translate-y-0', 'opacity-100');
-            setTimeout(() => {
-                toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 2500);
-        }
-
-        // --- CHEAT SHEET GENERATION ---
-        function toggleCheatSheet() {
-            const sheet = document.getElementById('cheatSheet');
-            const chevron = document.getElementById('chevron');
-            sheet.classList.toggle('hidden');
-            if (sheet.classList.contains('hidden')) {
-                chevron.classList.remove('rotate-180');
-            } else {
-                chevron.classList.add('rotate-180');
-            }
-        }
-
-        function initCheatSheet() {
-            const grid = document.getElementById('dictionary-grid');
-            Object.entries(MORSE_CODE).forEach(([char, code]) => {
-                const div = document.createElement('div');
-                div.className = "flex flex-col items-center justify-center bg-[#161b22] p-2.5 rounded-lg border border-[#30363d] hover:bg-[#1f2730] transition-all cursor-pointer flash-invert-bg";
-                
-                let displayChar = char === ' ' ? 'ESPACE' : char;
-
-                div.innerHTML = `
-                    <span class="text-cyan-400 font-bold text-lg">${displayChar}</span> 
-                    <span class="text-emerald-400 text-sm tracking-widest mt-1">${code}</span>
-                `;
-                div.onclick = () => {
-                    inputText.value += char;
-                    convertToMorse();
-                };
-                grid.appendChild(div);
-            });
-        }
+        });
     </script>
 </body>
 </html>
