@@ -13,6 +13,24 @@
             font-family: 'Inter', sans-serif;
             background-color: #0f172a;
             color: #e2e8f0;
+            transition: background-color 0.05s ease; /* Fluidité pour le flash */
+        }
+        /* Styles pour l'effet Lampe Torche */
+        body.flash-active {
+            background-color: #ffffff !important; /* Blanc intense */
+            color: #0f172a !important; /* Texte sombre pour la lisibilité */
+        }
+        /* Assurer la lisibilité des éléments internes lors du flash */
+        body.flash-active .bg-slate-900, 
+        body.flash-active .bg-slate-800,
+        body.flash-active .bg-slate-700 {
+            background-color: #f8fafc !important; /* Très clair */
+            color: #0f172a !important;
+        }
+        body.flash-active textarea {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border-color: #cbd5e1 !important;
         }
 
         .morse-font {
@@ -85,7 +103,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
             
             <!-- Swap Button (Mobile: Center vertical, Desktop: Center horizontal absolute) -->
-            <button onclick="swapText()" class="hidden lg:flex absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-sky-600 hover:bg-sky-500 text-white w-10 h-10 rounded-full items-center justify-center shadow-lg z-10 btn-action border-4 border-[#0f172a]" title="Inverser">
+            <button onclick="swapText()" class="hidden lg:flex absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-sky-600 hover:bg-sky-500 text-white w-10 h-10 rounded-full items-center justify-center shadow-lg z-10 btn-action border-4 border-[#0f172a]" title="Réinitialiser">
                 <i class="fa-solid fa-right-left"></i>
             </button>
 
@@ -140,11 +158,27 @@
                     <button id="stopBtn" onclick="stopMorse()" class="btn-action bg-red-500/20 hover:bg-red-500/30 text-red-400 py-2 px-4 rounded-lg font-medium text-sm flex items-center justify-center gap-2 hidden">
                         <i class="fa-solid fa-stop"></i> Stop
                     </button>
+                    <!-- WPM Slider -->
                     <div class="relative group">
                          <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block bg-black text-white text-xs p-2 rounded whitespace-nowrap z-20">
                             Vitesse (WPM)
                          </div>
                          <input type="range" id="wpm" min="5" max="40" value="20" class="w-full h-full accent-sky-500 cursor-pointer rounded-lg bg-slate-700 opacity-80 hover:opacity-100">
+                    </div>
+
+                    <!-- New Controls Row (Adjusted for 2 items) -->
+                    <div class="col-span-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <!-- Spacer / Placeholder for remaining items -->
+                        <div class="col-span-2 sm:col-span-3">
+                             <div class="text-xs text-slate-500 mt-2 font-mono">
+                                Fréquence Audio: 600 Hz (Fixe)
+                             </div>
+                        </div>
+
+                        <!-- Flashlight Toggle -->
+                        <button id="flashToggleBtn" onclick="toggleFlashlightMode()" class="btn-action bg-red-500/20 hover:bg-red-500/30 text-red-400 py-2 px-4 rounded-lg font-medium text-sm flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-mobile-screen"></i> Lampe Torche Écran
+                        </button>
                     </div>
                 </div>
             </div>
@@ -202,7 +236,17 @@
         const signalBulb = document.getElementById('signal-bulb');
         const bulbIcon = document.getElementById('bulb-icon');
         const wpmInput = document.getElementById('wpm');
+        const flashToggleBtn = document.getElementById('flashToggleBtn');
+
+        // --- GLOBAL STATE ---
+        let audioCtx = null;
+        let isPlaying = false;
+        let stopSignal = false;
+        let isFlashEnabled = false; // New state for flashlight mode
         
+        // Fixed frequency value
+        const FIXED_FREQUENCY = 600;
+
         // --- CONVERSION LOGIC ---
         function convertToMorse() {
             const text = inputText.value.toUpperCase();
@@ -245,35 +289,12 @@
         }
 
         function swapText() {
-            // Very basic heuristic swap: if output has content, put it in input and attempt decode
-            // But since input is always text and output always morse, we really just want to decode whatever is in the morse box?
-            // Actually, "Swap" implies changing modes. Since this is auto-updating, let's just reverse the fields visually?
-            // Simpler: Just copy Input to a temp, clear input, warn user.
-            // Better: This is a translator. Left is Text, Right is Morse. 
-            // If user typed in Morse on the right, it already updated the Left.
-            // So Swap button is mostly for if someone pasted Morse into the Text box by accident?
-            
-            // Let's make it act like Google Translate's swap
-            // But strict typing: Left must be Text, Right must be Morse.
-            // If we swap, we take the Text from Left, try to treat it as Morse? No.
-            
-            // Re-imagined Swap:
-            // Just clears both for a fresh start, or maybe just copies output to clipboard.
-            // Actually, let's just trigger a re-run based on which box was focused last.
-            // Or better yet, just ignore swap for this specific strict layout.
-            
-            // Implementation: We will invert the values simply for fun, but the logic remains Strict (Left=Text, Right=Morse).
-            // This button might be confusing. Let's make it clear: It clears inputs.
             inputText.value = "";
             outputText.value = "";
             showToast("Champs réinitialisés");
         }
 
         // --- AUDIO ENGINE ---
-        let audioCtx = null;
-        let isPlaying = false;
-        let stopSignal = false;
-
         async function playMorse() {
             if (isPlaying) return;
             const morse = outputText.value;
@@ -291,6 +312,7 @@
             updatePlayUI(true);
 
             const wpm = parseInt(wpmInput.value);
+            const freq = FIXED_FREQUENCY; // Use fixed frequency
             const unitTime = 1200 / wpm; // Standard formula: T = 1200 / WPM
 
             for (let i = 0; i < morse.length; i++) {
@@ -298,10 +320,10 @@
 
                 const char = morse[i];
                 
-                // Highlight bulb
+                // Highlight bulb & flash body
                 if (char === '.' || char === '-') {
                     toggleSignal(true);
-                    playTone(600, char === '.' ? unitTime : unitTime * 3); // Dot = 1 unit, Dash = 3 units
+                    playTone(freq, char === '.' ? unitTime : unitTime * 3); // Dot = 1 unit, Dash = 3 units
                     await wait(char === '.' ? unitTime : unitTime * 3);
                     toggleSignal(false);
                     await wait(unitTime); // Intra-character gap (1 unit)
@@ -322,7 +344,9 @@
             if (isPlaying) {
                 stopSignal = true;
                 if(audioCtx) audioCtx.suspend();
-                // Reset immediately visually
+                // Reset visual state immediately
+                toggleSignal(false); 
+                updatePlayUI(false);
                 setTimeout(() => {
                    if(audioCtx) audioCtx.resume(); 
                 }, 100);
@@ -335,7 +359,7 @@
             const gain = audioCtx.createGain();
 
             osc.type = 'sine';
-            osc.frequency.value = freq;
+            osc.frequency.value = freq; // Use dynamic frequency
             
             // Smooth attack/release to avoid clicking
             gain.gain.setValueAtTime(0, audioCtx.currentTime);
@@ -353,8 +377,25 @@
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
+        // --- FLASH MODE LOGIC ---
+        function toggleFlashlightMode() {
+            isFlashEnabled = !isFlashEnabled;
+            if (isFlashEnabled) {
+                flashToggleBtn.classList.remove('bg-red-500/20', 'text-red-400', 'hover:bg-red-500/30');
+                flashToggleBtn.classList.add('bg-red-600', 'text-white', 'hover:bg-red-500');
+                showToast("Lampe Torche Écran activée");
+            } else {
+                flashToggleBtn.classList.add('bg-red-500/20', 'text-red-400', 'hover:bg-red-500/30');
+                flashToggleBtn.classList.remove('bg-red-600', 'text-white', 'hover:bg-red-500');
+                // Ensure body is reset if we stop the mode while playing
+                document.body.classList.remove('flash-active'); 
+                showToast("Lampe Torche Écran désactivée");
+            }
+        }
+
         // --- UI HELPERS ---
         function toggleSignal(on) {
+            // 1. Bulb (Internal UI indicator)
             if (on) {
                 signalBulb.classList.add('signal-active');
                 bulbIcon.classList.add('text-white');
@@ -363,6 +404,15 @@
                 signalBulb.classList.remove('signal-active');
                 bulbIcon.classList.remove('text-white');
                 bulbIcon.classList.add('text-slate-600');
+            }
+
+            // 2. Body Flash (Full-screen effect, only if enabled)
+            if (isFlashEnabled) {
+                if (on) {
+                    document.body.classList.add('flash-active');
+                } else {
+                    document.body.classList.remove('flash-active');
+                }
             }
         }
 
@@ -377,14 +427,17 @@
                 status.classList.remove('hidden');
                 inputText.disabled = true;
                 outputText.disabled = true;
+                flashToggleBtn.disabled = true; // Disable toggle during playback
             } else {
                 playBtn.classList.remove('hidden');
                 stopBtn.classList.add('hidden');
                 status.classList.add('hidden');
                 inputText.disabled = false;
                 outputText.disabled = false;
+                flashToggleBtn.disabled = false;
             }
         }
+
 
         function clearInput(id) {
             document.getElementById(id).value = '';
