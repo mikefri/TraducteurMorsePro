@@ -1,0 +1,170 @@
+/* Configuration de base Tailwind et polices */
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+
+/* --- THEME DEFINITIONS --- */
+
+/* Thème Clair (Cyber-Clean) */
+.theme-light {
+    --color-bg: #f9fafb; /* Très léger gris */
+    --color-card-bg: #ffffff; 
+    --color-text-dark: #1f2937; /* Texte principal très lisible */
+    --color-text-subtle: #4b5563; /* Gris pour les sous-textes */
+    --color-accent-cyan: #06b6d4; /* Cyan Vif pour le focus */
+    --color-cta-green: #10b981; /* Vert Émeraude pour l'action Jouer */
+    --color-border: #e5e7eb; /* Bordure légère */
+    --color-gray-50: #f9fafb; /* Lighter background for headers */
+}
+
+/* Thème Sombre (Cyber-Noir) */
+.theme-dark {
+    --color-bg: #111827; /* Fond très sombre */
+    --color-card-bg: #1f2937; /* Cartes légèrement moins sombres */
+    --color-text-dark: #f3f4f6; /* Texte blanc/très clair */
+    --color-text-subtle: #9ca3af; /* Gris clair pour les sous-textes */
+    --color-accent-cyan: #22d3ee; /* Cyan Vif adapté au sombre */
+    --color-cta-green: #34d399; /* Vert Émeraude adapté au sombre */
+    --color-border: #374151; /* Bordure foncée */
+    --color-gray-50: #1f2937; /* Same as card background in dark mode */
+}
+ 
+/* --- GLOBAL STYLES --- */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--color-bg); 
+    color: var(--color-text-dark); 
+    min-height: 100vh;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* Police spécifique pour les codes */
+.mono-code {
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.1em;
+}
+ 
+/* Styles des Conteneurs de Code (Input/Output) */
+.code-container {
+    border: 1px solid var(--color-border);
+    transition: all 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    background-color: var(--color-card-bg);
+}
+.code-container:focus-within {
+     border-color: var(--color-accent-cyan);
+     box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.3); /* Anneau de focus Cyan */
+}
+
+/* Styles de la zone de texte */
+textarea {
+    background-color: var(--color-card-bg); /* S'assure qu'ils sont clairs/sombres selon le thème */
+    color: var(--color-text-dark);
+}
+/* Style des headers des containers d'input/output */
+.container-header {
+     border-bottom: 1px solid var(--color-border);
+     background-color: var(--color-gray-50);
+}
+
+/* Styles des Boutons d'Action (Modern Flat) */
+.btn-action {
+    font-weight: 600;
+    /* Rendre les boutons plus petits sur mobile, puis ajuster */
+    padding: 0.75rem 1rem; 
+    border-radius: 0.5rem;
+    transition: all 0.15s ease-in-out;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    /* Ajuster la taille pour le bouton JOUER SIGNAL */
+    font-size: 0.875rem; /* text-sm */
+}
+/* Ajuster le padding pour le desktop/largeurs classiques */
+@media (min-width: 768px) {
+    .btn-action {
+        padding: 0.75rem 1.5rem; 
+    }
+}
+.btn-action:hover {
+    opacity: 0.9;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+.btn-action:active {
+    transform: translateY(0);
+}
+
+/* Indicateur Visuel (Ampoule) */
+#signal-bulb {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background-color: var(--color-border);
+    transition: background-color 0.05s ease;
+}
+.signal-active {
+    background-color: var(--color-accent-cyan); 
+    box-shadow: 0 0 20px 5px var(--color-accent-cyan); /* Lueur Cyan basée sur la variable */
+}
+.signal-active #bulb-icon {
+    color: var(--color-card-bg) !important; /* L'icône devient la couleur du fond de carte (blanc ou gris foncé) */
+}
+
+/* Flash Écran (Blanc Pur) - Override pour le mode flash */
+body.flash-active {
+    background-color: white !important; 
+}
+
+/* Mode Selector Toggle */
+.mode-toggle-active {
+    color: var(--color-card-bg);
+    background-color: var(--color-accent-cyan);
+    box-shadow: 0 4px 6px -1px rgba(6, 182, 212, 0.2);
+}
+
+/* Styles du bouton de thème */
+#themeToggleBtn {
+    color: var(--color-text-subtle);
+    background-color: var(--color-card-bg);
+    border: 1px solid var(--color-border);
+    transition: all 0.3s;
+}
+#themeToggleBtn:hover {
+    color: var(--color-accent-cyan);
+    border-color: var(--color-accent-cyan);
+}
+ 
+/* Style pour la table du dictionnaire */
+.dictionary-table {
+    /* Utilisation d'un minmax plus petit sur mobile (120px) */
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); 
+    gap: 1px;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-border); /* La bordure/séparation */
+}
+/* Ajustement de la grille pour les écrans plus grands */
+@media (min-width: 640px) {
+    .dictionary-table {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    }
+}
+.dictionary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background-color: var(--color-card-bg);
+}
+.dict-char {
+    font-weight: 600;
+    color: var(--color-text-dark);
+    font-size: 0.875rem; /* text-sm */
+}
+.dict-code {
+    color: var(--color-accent-cyan);
+    font-size: 1rem; /* text-base */
+}
+/* Styles pour le chevron de repliement */
+#toggle-icon {
+    transition: transform 0.3s ease;
+}
+.rotated {
+    transform: rotate(180deg);
+}
