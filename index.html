@@ -1,119 +1,779 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="theme-light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PWA - Rendre l'App Installable</title>
-    <!-- 1. Lien vers le Manifest PWA -->
-    <link rel="manifest" href="/manifest.json">
-    
-    <!-- 2. Configuration des couleurs pour le thème mobile -->
-    <meta name="theme-color" content="#4f46e5">
-
-    <!-- Chargement de Tailwind CSS pour le style -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Traducteur Morse Cyber-Clean/Noir</title>
+    <link rel="manifest" href="./manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* Définition de la police Inter */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        /* Configuration de base Tailwind et polices */
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+
+        /* --- THEME DEFINITIONS --- */
+
+        /* Thème Clair (Cyber-Clean) */
+        .theme-light {
+            --color-bg: #f9fafb; /* Très léger gris */
+            --color-card-bg: #ffffff; 
+            --color-text-dark: #1f2937; /* Texte principal très lisible */
+            --color-text-subtle: #4b5563; /* Gris pour les sous-textes */
+            --color-accent-cyan: #06b6d4; /* Cyan Vif pour le focus */
+            --color-cta-green: #10b981; /* Vert Émeraude pour l'action Jouer */
+            --color-border: #e5e7eb; /* Bordure légère */
+            --color-gray-50: #f9fafb; /* Lighter background for headers */
+        }
+
+        /* Thème Sombre (Cyber-Noir) */
+        .theme-dark {
+            --color-bg: #111827; /* Fond très sombre */
+            --color-card-bg: #1f2937; /* Cartes légèrement moins sombres */
+            --color-text-dark: #f3f4f6; /* Texte blanc/très clair */
+            --color-text-subtle: #9ca3af; /* Gris clair pour les sous-textes */
+            --color-accent-cyan: #22d3ee; /* Cyan Vif adapté au sombre */
+            --color-cta-green: #34d399; /* Vert Émeraude adapté au sombre */
+            --color-border: #374151; /* Bordure foncée */
+            --color-gray-50: #1f2937; /* Same as card background in dark mode */
+        }
+        
+        /* --- GLOBAL STYLES --- */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
+            background-color: var(--color-bg); 
+            color: var(--color-text-dark); 
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
         }
-        /* Style pour simuler l'installation */
-        .install-button {
-            display: none; /* Masqué par défaut, affiché par le JS si l'installation est possible */
+
+        /* Police spécifique pour les codes */
+        .mono-code {
+            font-family: 'Space Mono', monospace;
+            letter-spacing: 0.1em;
+        }
+        
+        /* Styles des Conteneurs de Code (Input/Output) */
+        .code-container {
+            border: 1px solid var(--color-border);
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            background-color: var(--color-card-bg);
+        }
+        .code-container:focus-within {
+             border-color: var(--color-accent-cyan);
+             box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.3); /* Anneau de focus Cyan */
+        }
+
+        /* Styles de la zone de texte */
+        textarea {
+            background-color: var(--color-card-bg); /* S'assure qu'ils sont clairs/sombres selon le thème */
+            color: var(--color-text-dark);
+        }
+        /* Style des headers des containers d'input/output */
+        .container-header {
+             border-bottom: 1px solid var(--color-border);
+             background-color: var(--color-gray-50);
+        }
+
+        /* Styles des Boutons d'Action (Modern Flat) */
+        .btn-action {
+            font-weight: 600;
+            /* Rendre les boutons plus petits sur mobile, puis ajuster */
+            padding: 0.75rem 1rem; 
+            border-radius: 0.5rem;
+            transition: all 0.15s ease-in-out;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            /* Ajuster la taille pour le bouton JOUER SIGNAL */
+            font-size: 0.875rem; /* text-sm */
+        }
+        /* Ajuster le padding pour le desktop/largeurs classiques */
+        @media (min-width: 768px) {
+            .btn-action {
+                padding: 0.75rem 1.5rem; 
+            }
+        }
+        .btn-action:hover {
+            opacity: 0.9;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+        .btn-action:active {
+            transform: translateY(0);
+        }
+
+        /* Indicateur Visuel (Ampoule) */
+        #signal-bulb {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background-color: var(--color-border);
+            transition: background-color 0.05s ease;
+        }
+        .signal-active {
+            background-color: var(--color-accent-cyan); 
+            box-shadow: 0 0 20px 5px var(--color-accent-cyan); /* Lueur Cyan basée sur la variable */
+        }
+        .signal-active #bulb-icon {
+            color: var(--color-card-bg) !important; /* L'icône devient la couleur du fond de carte (blanc ou gris foncé) */
+        }
+
+        /* Flash Écran (Blanc Pur) - Override pour le mode flash */
+        body.flash-active {
+            background-color: white !important; 
+        }
+
+        /* Mode Selector Toggle */
+        .mode-toggle-active {
+            color: var(--color-card-bg);
+            background-color: var(--color-accent-cyan);
+            box-shadow: 0 4px 6px -1px rgba(6, 182, 212, 0.2);
+        }
+
+        /* Styles du bouton de thème */
+        #themeToggleBtn {
+            color: var(--color-text-subtle);
+            background-color: var(--color-card-bg);
+            border: 1px solid var(--color-border);
+            transition: all 0.3s;
+        }
+        #themeToggleBtn:hover {
+            color: var(--color-accent-cyan);
+            border-color: var(--color-accent-cyan);
+        }
+        
+        /* Style pour la table du dictionnaire */
+        .dictionary-table {
+            /* Utilisation d'un minmax plus petit sur mobile (120px) */
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); 
+            gap: 1px;
+            border: 1px solid var(--color-border);
+            background-color: var(--color-border); /* La bordure/séparation */
+        }
+        /* Ajustement de la grille pour les écrans plus grands */
+        @media (min-width: 640px) {
+            .dictionary-table {
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            }
+        }
+        .dictionary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0.75rem;
+            background-color: var(--color-card-bg);
+        }
+        .dict-char {
+            font-weight: 600;
+            color: var(--color-text-dark);
+            font-size: 0.875rem; /* text-sm */
+        }
+        .dict-code {
+            color: var(--color-accent-cyan);
+            font-size: 1rem; /* text-base */
+        }
+        /* Styles pour le chevron de repliement */
+        #toggle-icon {
+            transition: transform 0.3s ease;
+        }
+        .rotated {
+            transform: rotate(180deg);
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="flex flex-col items-center p-4 md:p-10">
+    <button id="themeToggleBtn" onclick="toggleTheme()" class="absolute top-4 left-4 p-3 rounded-full shadow-lg cursor-pointer z-10" title="Basculer le thème (Clair/Sombre)">
+        <i class="fa-solid text-xl" id="themeIcon"></i>
+    </button>
 
-    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg text-gray-800 border-t-4 border-indigo-600">
-        <h1 class="text-3xl font-bold mb-4 text-indigo-600">Application PWA Démo</h1>
-        <p class="mb-6 text-gray-600">
-            Ceci est une application web progressive. Grâce au **Service Worker** et au **Manifest**, elle est maintenant installable et fonctionne hors ligne.
-        </p>
+    <header class="w-full max-w-6xl mb-10 md:mb-12">
+        <div class="flex items-center justify-center space-x-2">
+            <h1 class="text-3xl md:text-5xl font-extrabold tracking-tighter text-[var(--color-text-dark)]">TRADUCTEUR</h1>
+            <h1 class="text-3xl md:text-5xl font-extrabold tracking-tighter text-[var(--color-accent-cyan)] border-b-4 border-[var(--color-accent-cyan)] pb-1">MORSE</h1>
+        </div>
+        <p class="text-center text-sm text-[var(--color-text-subtle)] mt-2 mono-code">CONVERTISSEUR ANALOGIQUE-NUMÉRIQUE</p>
+    </header>
 
-        <div id="status-message" class="p-3 mb-4 rounded-lg bg-gray-100 border border-gray-300 text-sm">
-            Statut du Service Worker : En attente d'enregistrement...
+    <div class="flex flex-col items-center mb-6 md:mb-8">
+        <div id="signal-bulb" class="flex items-center justify-center cursor-pointer" title="Indicateur Visuel">
+            <i class="fa-solid fa-satellite-dish text-3xl text-[var(--color-text-subtle)] transition-colors" id="bulb-icon"></i>
+        </div>
+        <div class="text-sm font-bold mt-2 tracking-widest" id="playing-status">PRÊT</div>
+    </div>
+
+    <div class="flex mb-6 md:mb-8 p-1 rounded-xl border border-[var(--color-border)] shadow-md bg-[var(--color-card-bg)] w-full max-w-sm">
+        <button id="mode-text-to-morse" class="mode-button flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-colors mode-toggle-active" onclick="setMode('textToMorse')">
+            Texte → Morse
+        </button>
+        <button id="mode-morse-to-text" class="mode-button flex-1 px-4 py-2 rounded-lg text-sm font-semibold text-[var(--color-text-subtle)] hover:bg-[var(--color-gray-50)] transition-colors" onclick="setMode('morseToText')">
+            Morse → Texte
+        </button>
+    </div>
+
+    <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 relative mb-6 md:mb-8">
+
+        <div class="flex flex-col h-[300px] md:h-[350px] code-container rounded-xl overflow-hidden">
+            <div class="flex justify-between items-center p-4 container-header">
+                <label id="inputLabel" class="text-xs font-bold uppercase text-[var(--color-text-subtle)] tracking-wider">ENTRÉE TEXTE</label>
+                <button onclick="clearInput('inputText')" class="text-[var(--color-text-subtle)] hover:text-red-500 text-sm transition-colors" title="Effacer">
+                    <i class="fa-solid fa-eraser"></i>
+                </button>
+            </div>
+            <textarea 
+                id="inputText" 
+                placeholder="Commencez à taper..." 
+                class="w-full flex-grow p-4 outline-none resize-none mono-code text-lg placeholder-[var(--color-text-subtle)] border-0 focus:ring-0"
+                oninput="handleInput()"
+            ></textarea>
         </div>
 
-        <button id="installButton" class="install-button w-full bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-indigo-700 transition duration-300 shadow-md">
-            Installer l'Application
+        <div class="flex flex-col h-[300px] md:h-[350px] code-container rounded-xl overflow-hidden">
+            <div class="flex justify-between items-center p-4 container-header">
+                <label id="outputLabel" class="text-xs font-bold uppercase text-[var(--color-text-subtle)] tracking-wider">SORTIE CODE MORSE</label>
+                <button onclick="copyToClipboard('outputText', 'Code Copié !')" class="text-[var(--color-accent-cyan)] hover:opacity-75 text-sm transition-colors" title="Copier">
+                    <i class="fa-solid fa-copy"></i>
+                </button>
+            </div>
+            <textarea 
+                id="outputText" 
+                placeholder="Résultat de la conversion..." 
+                class="w-full flex-grow p-4 outline-none resize-none mono-code text-lg md:text-xl text-[var(--color-accent-cyan)] placeholder-[var(--color-text-subtle)] border-0 focus:ring-0 leading-relaxed"
+                readonly
+            ></textarea>
+        </div>
+    </main>
+    
+    <div class="w-full max-w-6xl p-4 bg-[var(--color-card-bg)] rounded-xl shadow-lg border border-[var(--color-border)] mb-6 md:mb-8">
+
+        <div class="flex flex-col md:flex-row justify-between items-center pb-4 mb-4 border-b border-[var(--color-border)] space-y-4 md:space-y-0">
+            <div class="flex items-center space-x-2 md:space-x-4 w-full md:w-1/2">
+                <label for="wpm" class="text-xs font-bold text-[var(--color-text-subtle)] whitespace-nowrap">WPM (<span id="wpmValue">20</span>):</label> 
+                <input type="range" id="wpm" min="5" max="40" value="20" class="w-full h-2 accent-[var(--color-accent-cyan)] cursor-pointer rounded-lg bg-[var(--color-border)]">
+             </div>
+
+            <div class="flex space-x-3 w-full md:w-auto justify-center md:justify-start">
+                 <button id="muteToggleBtn" onclick="toggleMute()" class="btn-action bg-[var(--color-gray-50)] hover:bg-[var(--color-border)] text-[var(--color-text-subtle)] flex items-center space-x-2">
+                     <i class="fa-solid fa-volume-high text-lg" id="muteIcon"></i>
+                     <span class="hidden md:inline">Muet</span> </button>
+
+                 <button id="flashToggleBtn" onclick="toggleFlashlightMode()" class="btn-action bg-[var(--color-gray-50)] hover:bg-[var(--color-border)] text-[var(--color-text-subtle)] flex items-center space-x-2">
+                     <i class="fa-solid fa-mobile-screen-button text-lg" id="flashIcon"></i>
+                     <span class="hidden md:inline">Flash</span> </button>
+             </div>
+        </div>
+
+        <div class="flex justify-between items-center">
+            
+            <div class="flex space-x-3">
+                <button id="playBtn" onclick="togglePlayStop('play')" class="btn-action bg-[var(--color-cta-green)] hover:opacity-90 text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-play text-lg"></i>
+                    <span class="hidden sm:inline">JOUER SIGNAL</span>
+                    <span class="sm:hidden">JOUER</span>
+                </button>
+                <button id="stopBtn" onclick="togglePlayStop('stop')" class="btn-action bg-red-500 hover:opacity-90 text-white flex items-center space-x-2 hidden">
+                    <i class="fa-solid fa-stop text-lg"></i>
+                    <span class="hidden sm:inline">ARRÊTER</span>
+                    <span class="sm:hidden">STOP</span>
+                </button>
+            </div>
+
+            <button id="loopToggleBtn" onclick="toggleLoop()" class="btn-action bg-[var(--color-gray-50)] hover:bg-[var(--color-border)] text-[var(--color-text-subtle)] flex items-center space-x-2">
+                <i class="fa-solid fa-sync text-lg" id="loopIcon"></i>
+                <span id="loopStatus" class="font-bold hidden sm:inline">BOUCLE OFF</span>
+                <span class="sm:hidden">BOUCLE</span>
+            </button>
+            
+            </div>
+    </div>
+    
+    <div class="w-full max-w-6xl mt-4 border border-[var(--color-border)] rounded-xl overflow-hidden shadow-lg">
+        <button onclick="toggleDictionary()" class="w-full flex justify-between items-center p-4 bg-[var(--color-card-bg)] hover:bg-[var(--color-gray-50)] transition-colors cursor-pointer">
+            <h2 class="text-base md:text-xl font-bold uppercase tracking-wider text-[var(--color-text-dark)]">RÉFÉRENCE DU CODE MORSE</h2>
+            <i class="fa-solid fa-chevron-up text-[var(--color-accent-cyan)] text-lg" id="toggle-icon"></i>
         </button>
 
-        <p class="mt-4 text-xs text-gray-500 text-center">
-            (Le bouton d'installation apparaîtra lorsque le navigateur le permettra.)
-        </p>
+        <div id="morseDictionaryContainer" class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out">
+            <div id="morseDictionary" class="dictionary-table">
+                </div>
+        </div>
+    </div>
+
+
+    <div id="toast" class="fixed bottom-5 right-5 bg-[var(--color-accent-cyan)] text-white px-6 py-3 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
+        <i class="fa-solid fa-circle-check text-xl"></i>
+        <span id="toast-msg" class="font-medium">Opération réussie</span>
     </div>
 
     <script>
-        // Configuration PWA et Service Worker
-        
-        let deferredPrompt;
-        const installButton = document.getElementById('installButton');
-        const statusMessage = document.getElementById('status-message');
-        const serviceWorkerPath = '/service-worker.js';
+        // --- DATA (Morse Code Map) ---
+        const MORSE_CODE = {
+            'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.',
+            'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
+            'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.',
+            'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-',
+            'Y': '-.--', 'Z': '--..',
+            '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....',
+            '6': '-....', '7': '--...', '8': '---..', '9': '----.', '0': '-----',
+            ' ': '/', '.': '.-.-.-', ',': '--..--', '?': '..-..-', "'": '.----.',
+            '!': '-.-.--', '/': '-..-.', '(': '-.--.', ')': '-.--.-', '&': '.-...',
+            ':': '---...', ';': '-.-.-.', '=': '-...-', '+': '.-.-.', '-': '-....-',
+            '_': '..--.-', '"': '.-..-.', '$': '...-..-', '@': '.--.-.'
+        };
 
-        // 3. Enregistrement du Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register(serviceWorkerPath, { scope: '/' })
-                    .then((registration) => {
-                        console.log('Service Worker enregistré avec succès. Scope:', registration.scope);
-                        statusMessage.textContent = 'Statut du Service Worker : Enregistré et opérationnel (hors ligne activé)';
-                        statusMessage.classList.remove('bg-gray-100');
-                        statusMessage.classList.add('bg-green-100', 'text-green-800');
-                    })
-                    .catch((error) => {
-                        console.error('Échec de l\'enregistrement du Service Worker:', error);
-                        statusMessage.textContent = 'Statut du Service Worker : Erreur lors de l\'enregistrement';
-                        statusMessage.classList.remove('bg-gray-100');
-                        statusMessage.classList.add('bg-red-100', 'text-red-800');
-                    });
-            });
-        } else {
-             statusMessage.textContent = 'Statut du Service Worker : Non supporté par ce navigateur.';
-             statusMessage.classList.remove('bg-gray-100');
-             statusMessage.classList.add('bg-orange-100', 'text-orange-800');
+        const REVERSE_MORSE = Object.fromEntries(Object.entries(MORSE_CODE).map(([k, v]) => [v, k]));
+
+        // --- DOM ELEMENTS & STATE ---
+        const html = document.documentElement;
+        const themeIcon = document.getElementById('themeIcon');
+        const inputText = document.getElementById('inputText');
+        const outputText = document.getElementById('outputText');
+        const wpmInput = document.getElementById('wpm');
+        const wpmValueDisplay = document.getElementById('wpmValue');
+        const signalBulb = document.getElementById('signal-bulb');
+        const playingStatusDisplay = document.getElementById('playing-status');
+        const playBtn = document.getElementById('playBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const loopToggleBtn = document.getElementById('loopToggleBtn');
+        const loopIcon = document.getElementById('loopIcon');
+        const loopStatusDisplay = document.getElementById('loopStatus');
+        const muteIcon = document.getElementById('muteIcon');
+        const flashIcon = document.getElementById('flashIcon');
+        const morseDictionaryContainer = document.getElementById('morseDictionaryContainer');
+        const morseDictionary = document.getElementById('morseDictionary');
+        const toggleIcon = document.getElementById('toggle-icon');
+        const modeTextToMorse = document.getElementById('mode-text-to-morse');
+        const modeMorseToText = document.getElementById('mode-morse-to-text');
+
+        let audioCtx = null;
+        let isPlaying = false;
+        let stopSignal = false;
+        let isLoopEnabled = false; 
+        let isMuted = false;
+        let isFlashEnabled = false;
+        let currentMode = 'textToMorse';
+        let isDictionaryOpen = false; 
+        
+        const FIXED_FREQUENCY = 600;
+
+        // --- THEME MANAGEMENT ---
+        function toggleTheme() {
+            const currentTheme = html.classList.contains('theme-dark') ? 'theme-dark' : 'theme-light';
+            const newTheme = currentTheme === 'theme-light' ? 'theme-dark' : 'theme-light';
+            
+            html.classList.remove(currentTheme);
+            html.classList.add(newTheme);
+
+            // Sauvegarder la nouvelle préférence dans localStorage
+            localStorage.setItem('theme', newTheme);
+
+            // Mise à jour de l'icône pour montrer le thème OPPOSÉ (celui vers lequel on peut basculer)
+            if (newTheme === 'theme-dark') {
+                themeIcon.classList.remove('fa-moon'); // On est sombre, on montre le soleil
+                themeIcon.classList.add('fa-sun');
+                showToast("Thème Sombre Activé");
+            } else {
+                themeIcon.classList.remove('fa-sun'); // On est clair, on montre la lune
+                themeIcon.classList.add('fa-moon');
+                showToast("Thème Clair Activé");
+            }
         }
 
-        // Gestion de l'événement d'installation ('beforeinstallprompt')
-        window.addEventListener('beforeinstallprompt', (e) => {
-            // Empêche le navigateur de montrer sa propre invite d'installation
-            e.preventDefault();
-            // Stocke l'événement pour pouvoir le déclencher plus tard
-            deferredPrompt = e;
-            // Affiche le bouton d'installation personnalisé
-            installButton.style.display = 'block';
-            installButton.classList.remove('install-button'); 
-        });
-
-        // Gestion du clic sur le bouton d'installation
-        installButton.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                // Masque le bouton pendant la tentative d'installation
-                installButton.style.display = 'none';
-                
-                // Déclenche l'invite d'installation du navigateur
-                deferredPrompt.prompt();
-                
-                // Attend que l'utilisateur réponde à l'invite
-                const { outcome } = await deferredPrompt.userChoice;
-                
-                if (outcome === 'accepted') {
-                    console.log('L\'utilisateur a accepté l\'installation.');
-                    statusMessage.textContent = 'Application installée avec succès !';
-                } else {
-                    console.log('L\'utilisateur a refusé l\'installation.');
-                    statusMessage.textContent = 'L\'installation a été annulée.';
-                    // Laisse le bouton affiché si l'utilisateur annule
-                    installButton.style.display = 'block';
-                }
-                
-                // Réinitialise deferredPrompt
-                deferredPrompt = null;
+        function applyInitialTheme() {
+            // Lire la préférence de l'utilisateur (par défaut: clair)
+            const savedTheme = localStorage.getItem('theme') || 'theme-light';
+            
+            // Appliquer la classe de thème au HTML
+            html.classList.remove('theme-light', 'theme-dark');
+            html.classList.add(savedTheme);
+            
+            // Ajuster l'icône pour qu'elle corresponde à l'action de bascule (aller au thème opposé)
+            if (savedTheme === 'theme-dark') {
+                // Thème actuel : sombre -> l'icône doit être le soleil pour aller au clair
+                themeIcon.classList.remove('fa-moon'); 
+                themeIcon.classList.add('fa-sun');
+            } else {
+                // Thème actuel : clair -> l'icône doit être la lune pour aller au sombre
+                themeIcon.classList.remove('fa-sun'); 
+                themeIcon.classList.add('fa-moon');
             }
+        }
+
+
+        // --- INITIALIZATION ---
+        wpmInput.addEventListener('input', () => {
+            wpmValueDisplay.textContent = wpmInput.value;
         });
+        wpmValueDisplay.textContent = wpmInput.value;
+        setMode(currentMode);
+        generateDictionaryTable(); 
+        
+        // Dictionnaire fermé par défaut
+        toggleIcon.classList.add('rotated'); 
+        
+        // Appliquer le thème sauvegardé (ou par défaut)
+        applyInitialTheme();
+
+
+        function generateDictionaryTable() {
+            morseDictionary.innerHTML = ''; 
+            
+            const filteredMorse = Object.entries(MORSE_CODE).filter(([char, code]) => char !== ' ');
+
+            filteredMorse.forEach(([char, code]) => {
+                const div = document.createElement('div');
+                div.className = 'dictionary-item';
+                div.innerHTML = `
+                    <span class="dict-char">${char.toUpperCase()}</span>
+                    <span class="dict-code mono-code">${code}</span>
+                `;
+                morseDictionary.appendChild(div);
+            });
+        }
+        
+        // --- DICTIONARY TOGGLE LOGIC ---
+        function toggleDictionary() {
+            isDictionaryOpen = !isDictionaryOpen;
+            
+            if (isDictionaryOpen) {
+                // Open: Set max-height to its scroll height and rotate icon up
+                morseDictionaryContainer.style.maxHeight = morseDictionaryContainer.scrollHeight + "px";
+                toggleIcon.classList.remove('rotated');
+            } else {
+                // Close: Set max-height to 0 and rotate icon down
+                morseDictionaryContainer.style.maxHeight = '0';
+                toggleIcon.classList.add('rotated');
+            }
+        }
+
+
+        // --- CORE CONVERSION LOGIC ---
+        function convertToMorse(text) {
+            text = text.toUpperCase();
+            let result = "";
+            for (let char of text) {
+                if (char === '\n') {
+                    result += '\n';
+                } else if (MORSE_CODE[char]) {
+                    result += MORSE_CODE[char] + " ";
+                } else if (char === ' ') {
+                    result += "/ ";
+                } else {
+                    result += ""; 
+                }
+            }
+            return result.trim();
+        }
+
+        function convertToText(morse) {
+            morse = morse.trim();
+            const elements = morse.split(/([/\s]+)/).filter(e => e.trim() !== '');
+
+            let result = "";
+            elements.forEach(element => {
+                if (element === '/') {
+                    result += " "; 
+                } else if (REVERSE_MORSE[element]) {
+                    result += REVERSE_MORSE[element];
+                } else if (element.match(/^[.-]+$/)) {
+                     result += "[?]";
+                }
+            });
+            
+            return result.trim();
+        }
+
+        // --- MODE MANAGEMENT ---
+        function setMode(mode) {
+            currentMode = mode;
+            
+            // Reset styles
+            const allModeButtons = [modeTextToMorse, modeMorseToText];
+            allModeButtons.forEach(btn => {
+                btn.classList.remove('mode-toggle-active');
+                btn.classList.remove('text-white');
+                btn.classList.add('text-[var(--color-text-subtle)]');
+                btn.classList.add('hover:bg-[var(--color-gray-50)]');
+            });
+
+            if (mode === 'textToMorse') {
+                modeTextToMorse.classList.add('mode-toggle-active', 'text-white');
+                modeTextToMorse.classList.remove('text-[var(--color-text-subtle)]');
+                inputLabel.textContent = "ENTRÉE TEXTE";
+                outputLabel.textContent = "SORTIE CODE MORSE";
+                inputText.placeholder = "Commencez à taper votre message ici...";
+                outputText.placeholder = "Résultat de la conversion en Morse...";
+
+            } else {
+                modeMorseToText.classList.add('mode-toggle-active', 'text-white');
+                modeMorseToText.classList.remove('text-[var(--color-text-subtle)]');
+                inputLabel.textContent = "ENTRÉE CODE MORSE";
+                outputLabel.textContent = "SORTIE TEXTE";
+                inputText.placeholder = "Entrez votre code Morse ici (. - /)...";
+                outputText.placeholder = "Résultat de la conversion en texte...";
+            }
+            
+            // Swap content to visually align with mode, but keep original type in the right box
+            const tempInput = inputText.value;
+            inputText.value = outputText.value;
+            outputText.value = tempInput;
+
+            handleInput();
+        }
+
+        function handleInput() {
+            if (currentMode === 'textToMorse') {
+                outputText.value = convertToMorse(inputText.value);
+            } else {
+                outputText.value = convertToText(inputText.value);
+            }
+        }
+
+
+        // --- AUDIO/VISUAL ENGINE ---
+
+        async function runMorseSequence(morse) {
+            const wpm = parseInt(wpmInput.value);
+            const freq = FIXED_FREQUENCY;
+            const unitTime = 1200 / wpm; 
+
+            for (let i = 0; i < morse.length; i++) {
+                if (stopSignal) break;
+
+                const char = morse[i];
+                
+                if (char === '.' || char === '-') {
+                    const duration = char === '.' ? unitTime : unitTime * 3;
+                    
+                    toggleSignal(true); 
+                    if (!isMuted) playTone(freq, duration); 
+                    await wait(duration);
+                    
+                    toggleSignal(false); 
+                    await wait(unitTime); 
+                } else if (char === ' ') {
+                    await wait(unitTime * 2); 
+                } else if (char === '/') {
+                    await wait(unitTime * 6);
+                }
+            }
+            return !stopSignal;
+        }
+
+        async function playMorse() {
+            if (isPlaying) return;
+            const morse = currentMode === 'textToMorse' ? outputText.value.trim() : inputText.value.trim();
+
+            if (!morse) {
+                showToast("Veuillez saisir du Code Morse à jouer !");
+                return;
+            }
+
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            isPlaying = true;
+            stopSignal = false;
+            updatePlayUI('play');
+
+            do {
+                const completed = await runMorseSequence(morse);
+                if (stopSignal) break; 
+                
+                if (isLoopEnabled && completed) {
+                    await wait(3000); 
+                }
+
+            } while (isLoopEnabled && !stopSignal); 
+
+            isPlaying = false;
+            stopSignal = false;
+            updatePlayUI('stop');
+            toggleSignal(false);
+        }
+
+        function togglePlayStop(action) {
+            if (action === 'play' && !isPlaying) {
+                playMorse();
+            } else if (action === 'stop') {
+                stopMorse();
+            }
+        }
+
+        function stopMorse() {
+            if (isPlaying) {
+                stopSignal = true;
+                if(audioCtx) audioCtx.suspend();
+                toggleSignal(false); 
+                updatePlayUI('stop');
+                showToast("Signal arrêté");
+                // Attendre brièvement pour permettre la suspension du contexte audio
+                setTimeout(() => { if(audioCtx) audioCtx.resume(); }, 100);
+            }
+        }
+
+        function playTone(freq, duration) {
+            if (isMuted) return;
+            if (!audioCtx || audioCtx.state === 'closed') {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.01);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + (duration / 1000) - 0.01);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + (duration / 1000));
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // --- TOGGLES ---
+
+        function toggleLoop() {
+            isLoopEnabled = !isLoopEnabled;
+            // Utiliser le bouton unique pour tous les affichages
+            [loopToggleBtn].forEach(btn => { 
+                btn.classList.toggle('bg-[var(--color-accent-cyan)]', isLoopEnabled);
+                btn.classList.toggle('text-white', isLoopEnabled);
+                btn.classList.toggle('bg-[var(--color-gray-50)]', !isLoopEnabled);
+                btn.classList.toggle('text-[var(--color-text-subtle)]', !isLoopEnabled);
+            });
+            loopStatusDisplay.textContent = isLoopEnabled ? "BOUCLE ON" : "BOUCLE OFF";
+            loopIcon.classList.toggle('fa-spin', isLoopEnabled);
+
+            showToast(isLoopEnabled ? "Mode Répéter Activé" : "Mode Répéter Désactivé");
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const buttons = [muteToggleBtn]; // Seulement le bouton unique (desktop/mobile)
+            const icons = [muteIcon];
+            
+            icons.forEach(icon => {
+                icon.classList.toggle('fa-volume-xmark', isMuted);
+                icon.classList.toggle('fa-volume-high', !isMuted);
+            });
+            
+            buttons.forEach(btn => {
+                btn.classList.toggle('bg-red-500', isMuted);
+                btn.classList.toggle('text-white', isMuted);
+                btn.classList.toggle('bg-[var(--color-gray-50)]', !isMuted);
+                btn.classList.toggle('text-[var(--color-text-subtle)]', !isMuted);
+            });
+
+            showToast(isMuted ? "Audio Muet" : "Audio ON");
+        }
+
+        function toggleFlashlightMode() {
+             isFlashEnabled = !isFlashEnabled;
+             const buttons = [flashToggleBtn]; // Seulement le bouton unique
+             
+             buttons.forEach(btn => {
+                btn.classList.toggle('bg-[var(--color-accent-cyan)]', isFlashEnabled);
+                btn.classList.toggle('text-white', isFlashEnabled);
+                btn.classList.toggle('bg-[var(--color-gray-50)]', !isFlashEnabled);
+                btn.classList.toggle('text-[var(--color-text-subtle)]', !isFlashEnabled);
+             });
+             
+             showToast(isFlashEnabled ? "Lampe Torche Écran : ON" : "Lampe Torche Écran : OFF");
+        }
+
+
+        // --- UI HELPERS ---
+        function toggleSignal(on) {
+            // 1. Bulb (Internal UI indicator)
+            signalBulb.classList.toggle('signal-active', on);
+            
+            // 2. Body Flash (Full-screen effect, only if enabled)
+            if (isFlashEnabled) {
+                document.body.classList.toggle('flash-active', on);
+            }
+        }
+
+        function updatePlayUI(state) {
+            const disableControls = state === 'play';
+            
+            playBtn.classList.toggle('hidden', disableControls);
+            stopBtn.classList.toggle('hidden', !disableControls);
+
+            inputText.disabled = disableControls;
+            wpmInput.disabled = disableControls;
+            loopToggleBtn.disabled = disableControls;
+            
+            // On disable tous les boutons de contrôle pour empêcher les clics pendant la lecture
+            document.querySelectorAll('.btn-action, .mode-button').forEach(btn => {
+                // Sauf le bouton Stop
+                if (btn.id !== 'stopBtn') {
+                    btn.disabled = disableControls;
+                }
+            });
+            
+            // Réactiver les boutons Mute et Flash (car on ne les désactive plus sur desktop/mobile)
+            muteToggleBtn.disabled = false;
+            flashToggleBtn.disabled = false;
+
+
+            playingStatusDisplay.textContent = disableControls ? "TRANSMISSION EN COURS..." : "PRÊT";
+            playingStatusDisplay.classList.toggle('text-red-500', disableControls);
+            playingStatusDisplay.classList.toggle('animate-pulse', disableControls);
+        }
+
+        function clearInput(id) {
+            document.getElementById(id).value = '';
+            handleInput();
+            showToast('Champ effacé');
+        }
+
+        function copyToClipboard(id, message) {
+            const copyText = document.getElementById(id);
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            showToast(message);
+            if (window.getSelection) {window.getSelection().removeAllRanges();}
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const msg = document.getElementById('toast-msg');
+            msg.innerText = message;
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+
+        // --- PWA: ENREGISTREMENT DU SERVICE WORKER ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // Pour GitHub Pages, ajuster le chemin du Service Worker
+                const BASE_PATH = '/TraducteurMorsePro/';
+                const SW_URL = window.location.hostname === 'mikefri.github.io' ? BASE_PATH + 'service-worker.js' : '/service-worker.js';
+
+                navigator.serviceWorker.register(SW_URL)
+                    .then(registration => {
+                        console.log('Service Worker enregistré avec succès:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Échec de l\'enregistrement du Service Worker:', error);
+                    });
+            });
+        }
     </script>
 </body>
 </html>
