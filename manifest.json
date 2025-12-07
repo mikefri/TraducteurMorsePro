@@ -1,5 +1,5 @@
 {
-"name": "Mon Application PWA Installable",
+"name": "TraducteurMorsePro",
 "short_name": "TraducteurMorsePro",
 "description": "Une application web progressive simple et installable.",
 "start_url": "./index.html",  "display": "standalone",
