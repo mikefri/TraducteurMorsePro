@@ -126,6 +126,9 @@
                 <i class="fa-solid fa-satellite-dish text-5xl text-[#30363d]" id="bulb-icon"></i>
             </div>
             <div class="text-sm text-cyan-400 font-bold mt-2" id="playing-status">PRÊT</div>
+            <div class="text-xs text-red-400 font-mono mt-1 hidden" id="loop-indicator">
+                <i class="fa-solid fa-sync fa-spin mr-1"></i> MODE BOUCLE ACTIF
+            </div>
         </div>
 
         <!-- Translator Area -->
@@ -179,32 +182,40 @@
                     oninput="convertToText()"
                 ></textarea>
                 
-                <!-- Controls Grid -->
-                <div class="grid grid-cols-4 gap-3 mt-4">
+                <!-- Controls Grid (Now 5 columns) -->
+                <div class="grid grid-cols-5 gap-3 mt-4">
+                    
                     <!-- Play / Stop Button -->
-                    <div class="col-span-2">
-                        <button id="playBtn" onclick="playMorse()" class="btn-modern bg-cyan-600 hover:bg-cyan-500 text-white w-full py-3 rounded-full font-bold flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-play"></i> Écouter le Signal
+                    <div class="col-span-3">
+                        <button id="playBtn" onclick="togglePlayMode(false)" class="btn-modern bg-cyan-600 hover:bg-cyan-500 text-white w-full py-3 rounded-full font-bold flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-play"></i> Écouter
                         </button>
                         <button id="stopBtn" onclick="stopMorse()" class="btn-modern bg-red-600 hover:bg-red-500 text-white w-full py-3 rounded-full font-bold flex items-center justify-center gap-2 hidden">
                             <i class="fa-solid fa-stop"></i> Arrêter
                         </button>
                     </div>
 
+                    <!-- Loop Toggle Button -->
+                    <div class="col-span-2">
+                         <button id="loopToggleBtn" onclick="togglePlayMode(true)" class="btn-modern bg-[#30363d] hover:bg-yellow-600 text-white w-full py-3 rounded-full font-medium flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-sync"></i> Boucler : <span id="loopStatus">OFF</span>
+                        </button>
+                    </div>
+
                     <!-- WPM Slider -->
-                    <div class="col-span-2 flex flex-col justify-center">
+                    <div class="col-span-3 flex flex-col justify-center">
                         <label for="wpm" class="text-xs text-[#8b949e] mb-1">Vitesse (WPM: <span id="wpmValue">20</span>)</label>
                         <input type="range" id="wpm" min="5" max="40" value="20" class="w-full h-2 accent-cyan-500 cursor-pointer rounded-lg bg-[#30363d]">
                     </div>
 
                     <!-- Lampe Torche Écran Toggle -->
-                    <button id="flashToggleBtn" onclick="toggleFlashlightMode()" class="col-span-2 btn-modern bg-[#30363d] hover:bg-red-500 text-white py-3 rounded-full font-medium flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-mobile-screen-button"></i> Flash Écran : <span id="flashStatus">OFF</span>
+                    <button id="flashToggleBtn" onclick="toggleFlashlightMode()" class="col-span-2 btn-modern bg-[#30363d] hover:bg-[#484f58] text-white py-3 rounded-full font-medium flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-mobile-screen-button"></i> Flash : <span id="flashStatus">OFF</span>
                     </button>
 
-                     <!-- Audio Frequency Info -->
-                    <div class="col-span-2 flex items-center justify-end text-sm text-[#8b949e] font-mono">
-                        <i class="fa-solid fa-volume-high mr-2 text-cyan-400"></i> Freq. Audio: 600 Hz
+                    <!-- Audio Frequency Info -->
+                    <div class="col-span-5 flex items-center justify-center text-sm text-[#8b949e] font-mono mt-2">
+                        <i class="fa-solid fa-volume-high mr-2 text-cyan-400"></i> Fréquence Audio: 600 Hz (Standard)
                     </div>
                 </div>
             </div>
@@ -265,13 +276,20 @@
         const wpmValueDisplay = document.getElementById('wpmValue');
         const flashToggleBtn = document.getElementById('flashToggleBtn');
         const flashStatusDisplay = document.getElementById('flashStatus');
+        const playBtn = document.getElementById('playBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const loopToggleBtn = document.getElementById('loopToggleBtn');
+        const loopStatusDisplay = document.getElementById('loopStatus');
+        const loopIndicator = document.getElementById('loop-indicator');
         const playingStatusDisplay = document.getElementById('playing-status');
+
 
         // --- GLOBAL STATE ---
         let audioCtx = null;
         let isPlaying = false;
         let stopSignal = false;
-        let isFlashEnabled = false; // État initial de la lampe torche écran
+        let isFlashEnabled = false; 
+        let isLoopEnabled = false; // NOUVEL ÉTAT POUR LA BOUCLE
         
         // Fixed frequency value
         const FIXED_FREQUENCY = 600;
@@ -307,33 +325,76 @@
 
         function convertToText() {
             const morse = outputText.value.trim();
-            const words = morse.split('/'); // Split by words first
-            let result = "";
+            // Utiliser une regex pour séparer à la fois par espace (lettre) et par / (mot)
+            const elements = morse.split(/([/\s])/).filter(e => e.trim() !== '');
 
-            words.forEach(word => {
-                const chars = word.trim().split(/\s+/); // Split by spaces (letters)
-                chars.forEach(char => {
-                    if (REVERSE_MORSE[char]) {
-                        result += REVERSE_MORSE[char];
-                    } else if (char === '') {
-                        // ignore empty
-                    } else {
-                        result += "[?]"; // Indicateur d'erreur
+            let result = "";
+            let inWord = false; // Pour gérer les espaces multiples ou les slashes consécutifs
+
+            elements.forEach(element => {
+                if (element === '/') {
+                    // Si on a un / qui suit une lettre, ajouter un espace (séparateur de mot)
+                    if (inWord) {
+                        result += " ";
+                        inWord = false;
                     }
-                });
-                result += " ";
+                } else if (element.trim() === '') {
+                    // Ignorer les espaces de séparation entre les codes
+                }
+                 else if (REVERSE_MORSE[element]) {
+                    result += REVERSE_MORSE[element];
+                    inWord = true;
+                } else {
+                    result += "[?]"; // Indicateur d'erreur
+                    inWord = true;
+                }
             });
             
             inputText.value = result.trim();
         }
 
         function swapText() {
+            stopMorse(); // S'assurer que le signal est coupé avant de vider
             inputText.value = "";
             outputText.value = "";
             showToast("Champs de traduction réinitialisés");
         }
 
         // --- AUDIO/VISUAL ENGINE ---
+
+        // Fonction principale de lecture de la séquence
+        async function runMorseSequence(morse) {
+            const wpm = parseInt(wpmInput.value);
+            const freq = FIXED_FREQUENCY;
+            const unitTime = 1200 / wpm; // T = 1200 / WPM
+
+            for (let i = 0; i < morse.length; i++) {
+                if (stopSignal) break;
+
+                const char = morse[i];
+                
+                // --- Visual/Audio Synchronization ---
+                if (char === '.' || char === '-') {
+                    const duration = char === '.' ? unitTime : unitTime * 3;
+                    
+                    toggleSignal(true); // Signal ON (visuel/flash + audio)
+                    playTone(freq, duration); 
+                    await wait(duration);
+                    
+                    toggleSignal(false); // Signal OFF (visuel/flash)
+                    await wait(unitTime); // Gap (1 unit)
+                } else if (char === ' ') {
+                    // Gap between letters (3 units total, we already waited 1 after the last dot/dash)
+                    await wait(unitTime * 2); 
+                } else if (char === '/') {
+                    // Gap between words (7 units total, we already waited 1 after the last dot/dash)
+                    await wait(unitTime * 6);
+                }
+            }
+            return !stopSignal; // Retourne true si la lecture s'est terminée sans interruption
+        }
+
+        // Fonction de démarrage pour le mode normal ou boucle
         async function playMorse() {
             if (isPlaying) return;
             const morse = outputText.value.trim();
@@ -350,39 +411,61 @@
             stopSignal = false;
             updatePlayUI(true);
 
-            const wpm = parseInt(wpmInput.value);
-            const freq = FIXED_FREQUENCY; // Use fixed frequency
-            const unitTime = 1200 / wpm; // Standard formula: T = 1200 / WPM
-
-            for (let i = 0; i < morse.length; i++) {
-                if (stopSignal) break;
-
-                const char = morse[i];
+            do {
+                const completed = await runMorseSequence(morse);
+                if (stopSignal) break; // Arrêter si le signal a été demandé
                 
-                // --- Visual/Audio Synchronization ---
-                if (char === '.' || char === '-') {
-                    const duration = char === '.' ? unitTime : unitTime * 3;
-                    
-                    toggleSignal(true, char); // Signal ON (visuel/flash + audio)
-                    playTone(freq, duration); 
-                    await wait(duration);
-                    
-                    toggleSignal(false); // Signal OFF (visuel/flash)
-                    await wait(unitTime); // Gap (1 unit)
-                } else if (char === ' ') {
-                    // Gap between letters (3 units total, we already waited 1 after the last dot/dash)
-                    await wait(unitTime * 2); 
-                } else if (char === '/') {
-                    // Gap between words (7 units total, we already waited 1 after the last dot/dash)
-                    await wait(unitTime * 6);
+                if (isLoopEnabled && completed) {
+                    // Attendre 3 secondes de silence avant de redémarrer la boucle
+                    await wait(3000); 
                 }
-            }
+
+            } while (isLoopEnabled && !stopSignal); // Continuer tant que la boucle est active ET non arrêtée
 
             isPlaying = false;
             stopSignal = false;
             updatePlayUI(false);
             toggleSignal(false);
         }
+
+        // Gère le démarrage du signal normal ou en boucle
+        function togglePlayMode(isLoopMode) {
+            if (isPlaying) {
+                // Si on clique sur Lecture ou Boucle ALORS qu'un est déjà actif, cela sert d'arrêt.
+                stopMorse();
+                return;
+            }
+
+            // Gère l'activation/désactivation du mode boucle
+            if (isLoopMode) {
+                isLoopEnabled = !isLoopEnabled;
+                if (isLoopEnabled) {
+                    loopStatusDisplay.textContent = "ON";
+                    loopToggleBtn.classList.remove('bg-[#30363d]', 'hover:bg-[#484f58]');
+                    loopToggleBtn.classList.add('bg-yellow-600', 'hover:bg-yellow-500');
+                    showToast("Mode Boucle activé");
+                } else {
+                    loopStatusDisplay.textContent = "OFF";
+                    loopToggleBtn.classList.add('bg-[#30363d]', 'hover:bg-[#484f58]');
+                    loopToggleBtn.classList.remove('bg-yellow-600', 'hover:bg-yellow-500');
+                    showToast("Mode Boucle désactivé");
+                }
+            } else {
+                 // Si on clique sur Lecture normale, désactiver la boucle
+                 if (isLoopEnabled) {
+                     isLoopEnabled = false;
+                     loopStatusDisplay.textContent = "OFF";
+                     loopToggleBtn.classList.add('bg-[#30363d]', 'hover:bg-[#484f58]');
+                     loopToggleBtn.classList.remove('bg-yellow-600', 'hover:bg-yellow-500');
+                 }
+            }
+            
+            // Démarrer la lecture si elle n'est pas déjà en cours
+            if (isLoopEnabled || !isLoopMode) {
+                playMorse();
+            }
+        }
+
 
         function stopMorse() {
             if (isPlaying) {
@@ -391,14 +474,25 @@
                 // Reset visual state immediately
                 toggleSignal(false); 
                 updatePlayUI(false);
-                showToast("Signal arrêté");
+                
+                // Réactive la boucle si elle était active
+                if(isLoopEnabled) {
+                    showToast("Boucle interrompue");
+                } else {
+                    showToast("Signal arrêté");
+                }
+                
                 // Resume context briefly to allow next play to work if needed
                 setTimeout(() => { if(audioCtx) audioCtx.resume(); }, 100);
             }
         }
 
         function playTone(freq, duration) {
+            if (!audioCtx || audioCtx.state === 'closed') {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
             if (audioCtx.state === 'suspended') audioCtx.resume();
+            
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
 
@@ -443,7 +537,7 @@
         }
 
         // --- UI HELPERS ---
-        function toggleSignal(on, type = null) {
+        function toggleSignal(on) {
             // 1. Bulb (Internal UI indicator)
             if (on) {
                 signalBulb.classList.add('signal-active');
@@ -465,8 +559,6 @@
         }
 
         function updatePlayUI(playing) {
-            const playBtn = document.getElementById('playBtn');
-            const stopBtn = document.getElementById('stopBtn');
             
             if (playing) {
                 playBtn.classList.add('hidden');
@@ -474,23 +566,35 @@
                 playingStatusDisplay.textContent = "TRANSMISSION EN COURS...";
                 playingStatusDisplay.classList.add('text-red-400', 'animate-pulse');
                 
+                // Indicateur de boucle
+                if (isLoopEnabled) {
+                    loopIndicator.classList.remove('hidden');
+                } else {
+                    loopIndicator.classList.add('hidden');
+                }
+
                 // Désactivation des inputs pendant la lecture
                 inputText.disabled = true;
                 outputText.disabled = true;
                 flashToggleBtn.disabled = true;
                 wpmInput.disabled = true;
+                loopToggleBtn.disabled = true;
+                playBtn.disabled = true;
 
             } else {
                 playBtn.classList.remove('hidden');
                 stopBtn.classList.add('hidden');
                 playingStatusDisplay.textContent = "PRÊT";
                 playingStatusDisplay.classList.remove('text-red-400', 'animate-pulse');
-                
+                loopIndicator.classList.add('hidden');
+
                 // Réactivation des inputs
                 inputText.disabled = false;
                 outputText.disabled = false;
                 flashToggleBtn.disabled = false;
                 wpmInput.disabled = false;
+                loopToggleBtn.disabled = false;
+                playBtn.disabled = false;
             }
         }
 
@@ -519,7 +623,7 @@
                 convertToMorse();
                 showToast("Texte collé et traduit");
             } catch (err) {
-                showToast("Erreur lors de l'accès au presse-papiers.");
+                showToast("Erreur lors de l'accès au presse-papiers. (Nécessite une interaction utilisateur ou une permission)");
             }
         }
 
@@ -527,12 +631,24 @@
             const toast = document.getElementById('toast');
             const msg = document.getElementById('toast-msg');
             msg.innerText = message;
+            // Assure-toi que la couleur est bonne pour le mode flash (le toast reste sombre)
+            toast.classList.add('bg-cyan-600', 'text-white'); 
+            
             toast.classList.remove('translate-y-20', 'opacity-0');
             toast.classList.add('translate-y-0', 'opacity-100');
-            setTimeout(() => {
-                toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 2500);
+            
+            // Empêche de déclencher le toast si on est en lecture et qu'on le stoppe rapidement
+            if (isPlaying) {
+                 setTimeout(() => {
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.add('translate-y-20', 'opacity-0');
+                 }, 2500);
+            } else {
+                 setTimeout(() => {
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.add('translate-y-20', 'opacity-0');
+                 }, 2500);
+            }
         }
 
         // --- CHEAT SHEET GENERATION ---
@@ -549,7 +665,12 @@
 
         function initCheatSheet() {
             const grid = document.getElementById('dictionary-grid');
-            Object.entries(MORSE_CODE).forEach(([char, code]) => {
+            // Filtrer les entrées pour ignorer les caractères spéciaux complexes ou non courants
+            const sortedEntries = Object.entries(MORSE_CODE)
+                .filter(([char, code]) => char.length === 1 && char.trim() !== '' && char !== '/')
+                .sort((a, b) => a[0].localeCompare(b[0])); // Tri alphabétique
+
+            sortedEntries.forEach(([char, code]) => {
                 const div = document.createElement('div');
                 div.className = "flex flex-col items-center justify-center bg-[#161b22] p-2.5 rounded-lg border border-[#30363d] hover:bg-[#1f2730] transition-all cursor-pointer flash-invert-bg";
                 
@@ -565,6 +686,19 @@
                 };
                 grid.appendChild(div);
             });
+            
+             // Ajouter le séparateur de mot (ESPACE /) à la fin
+            const spaceDiv = document.createElement('div');
+            spaceDiv.className = "flex flex-col items-center justify-center bg-[#161b22] p-2.5 rounded-lg border border-[#30363d] hover:bg-[#1f2730] transition-all cursor-pointer flash-invert-bg col-span-2 sm:col-span-1";
+            spaceDiv.innerHTML = `
+                <span class="text-cyan-400 font-bold text-lg">ESPACE</span> 
+                <span class="text-emerald-400 text-sm tracking-widest mt-1">/</span>
+            `;
+            spaceDiv.onclick = () => {
+                 inputText.value += ' ';
+                 convertToMorse();
+            };
+            grid.appendChild(spaceDiv);
         }
     </script>
 </body>
