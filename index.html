@@ -355,7 +355,6 @@
         const morseDictionaryContainer = document.getElementById('morseDictionaryContainer');
         const morseDictionary = document.getElementById('morseDictionary');
         const toggleIcon = document.getElementById('toggle-icon');
-        // FIX: Déclaration des variables manquantes pour les boutons de mode
         const modeTextToMorse = document.getElementById('mode-text-to-morse');
         const modeMorseToText = document.getElementById('mode-morse-to-text');
 
@@ -378,40 +377,39 @@
             html.classList.remove(currentTheme);
             html.classList.add(newTheme);
 
-            // Mise à jour de l'icône
+            // Sauvegarder la nouvelle préférence dans localStorage
+            localStorage.setItem('theme', newTheme);
+
+            // Mise à jour de l'icône pour montrer le thème OPPOSÉ (celui vers lequel on peut basculer)
             if (newTheme === 'theme-dark') {
-                themeIcon.classList.remove('fa-sun');
-                themeIcon.classList.add('fa-moon');
+                themeIcon.classList.remove('fa-moon'); // On est sombre, on montre le soleil
+                themeIcon.classList.add('fa-sun');
                 showToast("Thème Sombre Activé");
             } else {
-                themeIcon.classList.remove('fa-moon');
-                themeIcon.classList.add('fa-sun');
+                themeIcon.classList.remove('fa-sun'); // On est clair, on montre la lune
+                themeIcon.classList.add('fa-moon');
                 showToast("Thème Clair Activé");
             }
-
-            // Optionnel : Stocker la préférence (non utilisé ici pour simplicité)
-            // localStorage.setItem('theme', newTheme);
         }
 
         function applyInitialTheme() {
-            // L'état initial est 'theme-light', donc l'icône doit être 'fa-moon' (pour switcher au sombre)
-            // Si l'utilisateur préfère le clair, l'icône est la lune
-            themeIcon.classList.add('fa-moon');
-            html.classList.add('theme-light');
-            
-            // Si on voulait une persistance:
-            /*
+            // Lire la préférence de l'utilisateur (par défaut: clair)
             const savedTheme = localStorage.getItem('theme') || 'theme-light';
+            
+            // Appliquer la classe de thème au HTML
             html.classList.remove('theme-light', 'theme-dark');
             html.classList.add(savedTheme);
+            
+            // Ajuster l'icône pour qu'elle corresponde à l'action de bascule (aller au thème opposé)
             if (savedTheme === 'theme-dark') {
-                themeIcon.classList.remove('fa-sun');
-                themeIcon.classList.add('fa-moon');
-            } else {
-                themeIcon.classList.remove('fa-moon');
+                // Thème actuel : sombre -> l'icône doit être le soleil pour aller au clair
+                themeIcon.classList.remove('fa-moon'); 
                 themeIcon.classList.add('fa-sun');
+            } else {
+                // Thème actuel : clair -> l'icône doit être la lune pour aller au sombre
+                themeIcon.classList.remove('fa-sun'); 
+                themeIcon.classList.add('fa-moon');
             }
-            */
         }
 
 
@@ -425,6 +423,8 @@
         
         // Dictionnaire fermé par défaut
         toggleIcon.classList.add('rotated'); 
+        
+        // Appliquer le thème sauvegardé (ou par défaut)
         applyInitialTheme();
 
 
