@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traducteur Morse Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;600;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+
+        .morse-font {
+            font-family: 'Courier Prime', monospace;
+        }
+
+        /* Animation pour le voyant lumineux */
+        .signal-light {
+            transition: background-color 0.05s ease, box-shadow 0.05s ease;
+        }
+        .signal-active {
+            background-color: #ef4444; /* Rouge vif */
+            box-shadow: 0 0 20px 5px rgba(239, 68, 68, 0.7);
+        }
+        
+        /* Scrollbar custom */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        .btn-action {
+            transition: all 0.2s;
+        }
+        .btn-action:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-tower-broadcast text-sky-500 text-2xl"></i>
+                <h1 class="text-xl font-bold text-white tracking-wide">MORSE<span class="text-sky-500">CODE</span>.IO</h1>
+            </div>
+            <div class="text-xs text-slate-400 font-mono hidden sm:block">
+                --- ... ---
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow p-4 md:p-8 max-w-6xl mx-auto w-full">
+        
+        <!-- Signal Visualizer -->
+        <div class="flex justify-center mb-8">
+            <div class="relative group">
+                <div id="signal-bulb" class="w-16 h-16 rounded-full bg-slate-800 border-4 border-slate-700 signal-light flex items-center justify-center">
+                    <i class="fa-solid fa-lightbulb text-slate-600 text-2xl group-hover:text-slate-500 transition-colors" id="bulb-icon"></i>
+                </div>
+                <div class="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs text-slate-500 font-mono whitespace-nowrap">
+                    SIGNAL VISUEL
+                </div>
+            </div>
+        </div>
+
+        <!-- Translator Area -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+            
+            <!-- Swap Button (Mobile: Center vertical, Desktop: Center horizontal absolute) -->
+            <button onclick="swapText()" class="hidden lg:flex absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-sky-600 hover:bg-sky-500 text-white w-10 h-10 rounded-full items-center justify-center shadow-lg z-10 btn-action border-4 border-[#0f172a]" title="Inverser">
+                <i class="fa-solid fa-right-left"></i>
+            </button>
+
+            <!-- Input Section -->
+            <div class="bg-slate-800 rounded-xl p-5 shadow-xl border border-slate-700 flex flex-col h-[400px]">
+                <div class="flex justify-between items-center mb-3">
+                    <label class="text-sky-400 font-bold text-sm uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-font"></i> Texte (Français)
+                    </label>
+                    <button onclick="clearInput('inputText')" class="text-slate-400 hover:text-red-400 text-xs uppercase font-bold transition-colors">
+                        Effacer
+                    </button>
+                </div>
+                <textarea 
+                    id="inputText" 
+                    placeholder="Tapez votre texte ici..." 
+                    class="w-full flex-grow bg-slate-900 text-slate-200 p-4 rounded-lg focus:ring-2 focus:ring-sky-500 outline-none resize-none morse-font text-lg border border-slate-800 placeholder-slate-600"
+                    oninput="convertToMorse()"
+                ></textarea>
+                <div class="flex justify-end mt-3 gap-2">
+                    <button onclick="pasteText()" class="text-slate-400 hover:text-white text-sm px-3 py-1 rounded hover:bg-slate-700 transition-colors">
+                        <i class="fa-solid fa-paste mr-1"></i> Coller
+                    </button>
+                </div>
+            </div>
+
+            <!-- Output Section -->
+            <div class="bg-slate-800 rounded-xl p-5 shadow-xl border border-slate-700 flex flex-col h-[400px]">
+                <div class="flex justify-between items-center mb-3">
+                    <label class="text-emerald-400 font-bold text-sm uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-hashtag"></i> Code Morse
+                    </label>
+                    <div class="flex items-center gap-2">
+                        <span id="playing-status" class="text-xs text-emerald-400 font-mono hidden animate-pulse">LECTURE EN COURS...</span>
+                    </div>
+                </div>
+                <textarea 
+                    id="outputText" 
+                    placeholder="Le résultat apparaîtra ici..." 
+                    class="w-full flex-grow bg-slate-900 text-emerald-400 p-4 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none resize-none morse-font text-xl border border-slate-800 placeholder-slate-700 leading-relaxed"
+                    oninput="convertToText()"
+                ></textarea>
+                
+                <!-- Controls -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                    <button onclick="copyToClipboard()" class="btn-action bg-slate-700 hover:bg-slate-600 text-white py-2 px-4 rounded-lg font-medium text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-copy"></i> Copier
+                    </button>
+                    <button id="playBtn" onclick="playMorse()" class="btn-action bg-sky-600 hover:bg-sky-500 text-white py-2 px-4 rounded-lg font-medium text-sm flex items-center justify-center gap-2 col-span-2">
+                        <i class="fa-solid fa-play"></i> Écouter
+                    </button>
+                    <button id="stopBtn" onclick="stopMorse()" class="btn-action bg-red-500/20 hover:bg-red-500/30 text-red-400 py-2 px-4 rounded-lg font-medium text-sm flex items-center justify-center gap-2 hidden">
+                        <i class="fa-solid fa-stop"></i> Stop
+                    </button>
+                    <div class="relative group">
+                         <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block bg-black text-white text-xs p-2 rounded whitespace-nowrap z-20">
+                            Vitesse (WPM)
+                         </div>
+                         <input type="range" id="wpm" min="5" max="40" value="20" class="w-full h-full accent-sky-500 cursor-pointer rounded-lg bg-slate-700 opacity-80 hover:opacity-100">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cheat Sheet (Collapsible) -->
+        <div class="mt-8 bg-slate-800 rounded-xl overflow-hidden border border-slate-700">
+            <button onclick="toggleCheatSheet()" class="w-full p-4 flex justify-between items-center text-slate-300 hover:bg-slate-750 hover:text-white transition-colors">
+                <span class="font-bold text-sm uppercase tracking-wider"><i class="fa-solid fa-table-list mr-2"></i> Dictionnaire Morse</span>
+                <i id="chevron" class="fa-solid fa-chevron-down transition-transform"></i>
+            </button>
+            <div id="cheatSheet" class="hidden p-6 bg-slate-900 border-t border-slate-700">
+                <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 text-sm font-mono" id="dictionary-grid">
+                    <!-- Generated via JS -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800 p-6 mt-auto">
+        <div class="text-center text-slate-500 text-sm">
+            <p>Le point (.) est une unité de temps courte. Le tiret (-) vaut trois points.</p>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-sky-600 text-white px-6 py-3 rounded-lg shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toast-msg">Opération réussie</span>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const MORSE_CODE = {
+            'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.',
+            'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
+            'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.',
+            'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-',
+            'Y': '-.--', 'Z': '--..',
+            '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....',
+            '6': '-....', '7': '--...', '8': '---..', '9': '----.', '0': '-----',
+            ' ': '/', '.': '.-.-.-', ',': '--..--', '?': '..-..-', "'": '.----.',
+            '!': '-.-.--', '/': '-..-.', '(': '-.--.', ')': '-.--.-', '&': '.-...',
+            ':': '---...', ';': '-.-.-.', '=': '-...-', '+': '.-.-.', '-': '-....-',
+            '_': '..--.-', '"': '.-..-.', '$': '...-..-', '@': '.--.-.'
+        };
+
+        const REVERSE_MORSE = Object.fromEntries(Object.entries(MORSE_CODE).map(([k, v]) => [v, k]));
+
+        // --- DOM ELEMENTS ---
+        const inputText = document.getElementById('inputText');
+        const outputText = document.getElementById('outputText');
+        const signalBulb = document.getElementById('signal-bulb');
+        const bulbIcon = document.getElementById('bulb-icon');
+        const wpmInput = document.getElementById('wpm');
+        
+        // --- CONVERSION LOGIC ---
+        function convertToMorse() {
+            const text = inputText.value.toUpperCase();
+            let result = "";
+            
+            for (let char of text) {
+                if (char === '\n') {
+                    result += '\n';
+                } else if (MORSE_CODE[char]) {
+                    result += MORSE_CODE[char] + " ";
+                } else if (char === ' ') {
+                    result += "/ "; // Slash for word separation
+                } else {
+                    result += "? "; // Unknown char
+                }
+            }
+            outputText.value = result.trim();
+        }
+
+        function convertToText() {
+            const morse = outputText.value.trim();
+            const words = morse.split('/'); // Split by words first
+            let result = "";
+
+            words.forEach(word => {
+                const chars = word.trim().split(/\s+/); // Split by spaces (letters)
+                chars.forEach(char => {
+                    if (REVERSE_MORSE[char]) {
+                        result += REVERSE_MORSE[char];
+                    } else if (char === '') {
+                        // ignore empty
+                    } else {
+                        result += "#";
+                    }
+                });
+                result += " ";
+            });
+            
+            inputText.value = result.trim();
+        }
+
+        function swapText() {
+            // Very basic heuristic swap: if output has content, put it in input and attempt decode
+            // But since input is always text and output always morse, we really just want to decode whatever is in the morse box?
+            // Actually, "Swap" implies changing modes. Since this is auto-updating, let's just reverse the fields visually?
+            // Simpler: Just copy Input to a temp, clear input, warn user.
+            // Better: This is a translator. Left is Text, Right is Morse. 
+            // If user typed in Morse on the right, it already updated the Left.
+            // So Swap button is mostly for if someone pasted Morse into the Text box by accident?
+            
+            // Let's make it act like Google Translate's swap
+            // But strict typing: Left must be Text, Right must be Morse.
+            // If we swap, we take the Text from Left, try to treat it as Morse? No.
+            
+            // Re-imagined Swap:
+            // Just clears both for a fresh start, or maybe just copies output to clipboard.
+            // Actually, let's just trigger a re-run based on which box was focused last.
+            // Or better yet, just ignore swap for this specific strict layout.
+            
+            // Implementation: We will invert the values simply for fun, but the logic remains Strict (Left=Text, Right=Morse).
+            // This button might be confusing. Let's make it clear: It clears inputs.
+            inputText.value = "";
+            outputText.value = "";
+            showToast("Champs réinitialisés");
+        }
+
+        // --- AUDIO ENGINE ---
+        let audioCtx = null;
+        let isPlaying = false;
+        let stopSignal = false;
+
+        async function playMorse() {
+            if (isPlaying) return;
+            const morse = outputText.value;
+            if (!morse) {
+                showToast("Rien à écouter !");
+                return;
+            }
+
+            // Init Audio Context (must be user triggered)
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            isPlaying = true;
+            stopSignal = false;
+            updatePlayUI(true);
+
+            const wpm = parseInt(wpmInput.value);
+            const unitTime = 1200 / wpm; // Standard formula: T = 1200 / WPM
+
+            for (let i = 0; i < morse.length; i++) {
+                if (stopSignal) break;
+
+                const char = morse[i];
+                
+                // Highlight bulb
+                if (char === '.' || char === '-') {
+                    toggleSignal(true);
+                    playTone(600, char === '.' ? unitTime : unitTime * 3); // Dot = 1 unit, Dash = 3 units
+                    await wait(char === '.' ? unitTime : unitTime * 3);
+                    toggleSignal(false);
+                    await wait(unitTime); // Intra-character gap (1 unit)
+                } else if (char === ' ') {
+                    await wait(unitTime * 2); // Gap between letters (3 units total, we already waited 1)
+                } else if (char === '/') {
+                    await wait(unitTime * 6); // Gap between words (7 units total, we already waited 1)
+                }
+            }
+
+            isPlaying = false;
+            stopSignal = false;
+            updatePlayUI(false);
+            toggleSignal(false);
+        }
+
+        function stopMorse() {
+            if (isPlaying) {
+                stopSignal = true;
+                if(audioCtx) audioCtx.suspend();
+                // Reset immediately visually
+                setTimeout(() => {
+                   if(audioCtx) audioCtx.resume(); 
+                }, 100);
+            }
+        }
+
+        function playTone(freq, duration) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            
+            // Smooth attack/release to avoid clicking
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.01);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + (duration / 1000) - 0.01);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + (duration / 1000));
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // --- UI HELPERS ---
+        function toggleSignal(on) {
+            if (on) {
+                signalBulb.classList.add('signal-active');
+                bulbIcon.classList.add('text-white');
+                bulbIcon.classList.remove('text-slate-600');
+            } else {
+                signalBulb.classList.remove('signal-active');
+                bulbIcon.classList.remove('text-white');
+                bulbIcon.classList.add('text-slate-600');
+            }
+        }
+
+        function updatePlayUI(playing) {
+            const playBtn = document.getElementById('playBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const status = document.getElementById('playing-status');
+            
+            if (playing) {
+                playBtn.classList.add('hidden');
+                stopBtn.classList.remove('hidden');
+                status.classList.remove('hidden');
+                inputText.disabled = true;
+                outputText.disabled = true;
+            } else {
+                playBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
+                status.classList.add('hidden');
+                inputText.disabled = false;
+                outputText.disabled = false;
+            }
+        }
+
+        function clearInput(id) {
+            document.getElementById(id).value = '';
+            if(id === 'inputText') outputText.value = '';
+            showToast('Effacé');
+        }
+
+        function copyToClipboard() {
+            const copyText = document.getElementById("outputText");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            showToast("Morse copié !");
+            
+            // Deselect
+            if (window.getSelection) {window.getSelection().removeAllRanges();}
+        }
+        
+        async function pasteText() {
+            try {
+                const text = await navigator.clipboard.readText();
+                inputText.value = text;
+                convertToMorse();
+                showToast("Texte collé");
+            } catch (err) {
+                showToast("Erreur de collage");
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const msg = document.getElementById('toast-msg');
+            msg.innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2000);
+        }
+
+        // --- CHEAT SHEET GENERATION ---
+        function toggleCheatSheet() {
+            const sheet = document.getElementById('cheatSheet');
+            const chevron = document.getElementById('chevron');
+            sheet.classList.toggle('hidden');
+            if (sheet.classList.contains('hidden')) {
+                chevron.classList.remove('rotate-180');
+            } else {
+                chevron.classList.add('rotate-180');
+            }
+        }
+
+        function initCheatSheet() {
+            const grid = document.getElementById('dictionary-grid');
+            Object.entries(MORSE_CODE).forEach(([char, code]) => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center bg-slate-800 p-2 rounded border border-slate-700 hover:bg-slate-700 transition-colors";
+                div.innerHTML = `<span class="text-sky-400 font-bold">${char}</span> <span class="text-emerald-400 font-bold tracking-widest">${code}</span>`;
+                div.onclick = () => {
+                    inputText.value += char;
+                    convertToMorse();
+                };
+                div.style.cursor = 'pointer';
+                grid.appendChild(div);
+            });
+        }
+
+        // Init
+        initCheatSheet();
+    </script>
+</body>
+</html>
