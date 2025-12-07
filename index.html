@@ -1,30 +1,48 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="theme-light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Traducteur Morse Cyber-Clean</title>
+    <title>Traducteur Morse Cyber-Clean/Noir</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         /* Configuration de base Tailwind et polices */
         @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap');
 
-        /* Couleurs du Nouveau Thème Cyber-Clean (High Contrast Light Mode) */
-        :root {
+        /* --- THEME DEFINITIONS --- */
+
+        /* Thème Clair (Cyber-Clean) */
+        .theme-light {
             --color-bg: #f9fafb; /* Très léger gris */
             --color-card-bg: #ffffff; 
             --color-text-dark: #1f2937; /* Texte principal très lisible */
+            --color-text-subtle: #4b5563; /* Gris pour les sous-textes */
             --color-accent-cyan: #06b6d4; /* Cyan Vif pour le focus */
             --color-cta-green: #10b981; /* Vert Émeraude pour l'action Jouer */
             --color-border: #e5e7eb; /* Bordure légère */
+            --color-gray-50: #f9fafb; /* Lighter background for headers */
         }
 
+        /* Thème Sombre (Cyber-Noir) */
+        .theme-dark {
+            --color-bg: #111827; /* Fond très sombre */
+            --color-card-bg: #1f2937; /* Cartes légèrement moins sombres */
+            --color-text-dark: #f3f4f6; /* Texte blanc/très clair */
+            --color-text-subtle: #9ca3af; /* Gris clair pour les sous-textes */
+            --color-accent-cyan: #22d3ee; /* Cyan Vif adapté au sombre */
+            --color-cta-green: #34d399; /* Vert Émeraude adapté au sombre */
+            --color-border: #374151; /* Bordure foncée */
+            --color-gray-50: #1f2937; /* Same as card background in dark mode */
+        }
+        
+        /* --- GLOBAL STYLES --- */
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--color-bg); 
             color: var(--color-text-dark); 
             min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         /* Police spécifique pour les codes */
@@ -38,10 +56,22 @@
             border: 1px solid var(--color-border);
             transition: all 0.2s;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            background-color: var(--color-card-bg);
         }
         .code-container:focus-within {
              border-color: var(--color-accent-cyan);
-             box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2); /* Anneau de focus Cyan */
+             box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.3); /* Anneau de focus Cyan */
+        }
+
+        /* Styles de la zone de texte */
+        textarea {
+            background-color: var(--color-card-bg); /* S'assure qu'ils sont clairs/sombres selon le thème */
+            color: var(--color-text-dark);
+        }
+        /* Style des headers des containers d'input/output */
+        .container-header {
+             border-bottom: 1px solid var(--color-border);
+             background-color: var(--color-gray-50);
         }
 
         /* Styles des Boutons d'Action (Modern Flat) */
@@ -71,22 +101,34 @@
         }
         .signal-active {
             background-color: var(--color-accent-cyan); 
-            box-shadow: 0 0 20px 5px rgba(6, 182, 212, 0.7); /* Lueur Cyan */
+            box-shadow: 0 0 20px 5px var(--color-accent-cyan); /* Lueur Cyan basée sur la variable */
         }
         .signal-active #bulb-icon {
-            color: white !important;
+            color: var(--color-card-bg) !important; /* L'icône devient la couleur du fond de carte (blanc ou gris foncé) */
         }
 
-        /* Flash Écran (Blanc Pur) */
+        /* Flash Écran (Blanc Pur) - Override pour le mode flash */
         body.flash-active {
             background-color: white !important; 
         }
 
         /* Mode Selector Toggle */
         .mode-toggle-active {
-            color: white;
+            color: var(--color-card-bg);
             background-color: var(--color-accent-cyan);
             box-shadow: 0 4px 6px -1px rgba(6, 182, 212, 0.2);
+        }
+
+        /* Styles du bouton de thème */
+        #themeToggleBtn {
+            color: var(--color-text-subtle);
+            background-color: var(--color-card-bg);
+            border: 1px solid var(--color-border);
+            transition: all 0.3s;
+        }
+        #themeToggleBtn:hover {
+            color: var(--color-accent-cyan);
+            border-color: var(--color-accent-cyan);
         }
         
         /* Style pour la table du dictionnaire */
@@ -95,8 +137,7 @@
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 1px;
             border: 1px solid var(--color-border);
-            /* Removed border-radius and overflow from here as it's now on the container */
-            background-color: var(--color-border);
+            background-color: var(--color-border); /* La bordure/séparation */
         }
         .dictionary-item {
             display: flex;
@@ -125,29 +166,35 @@
 </head>
 <body class="flex flex-col items-center p-4 md:p-10">
 
+    <!-- Bouton de Thème -->
+    <button id="themeToggleBtn" onclick="toggleTheme()" class="absolute top-4 left-4 p-3 rounded-full shadow-lg cursor-pointer z-10" title="Basculer le thème (Clair/Sombre)">
+        <!-- L'icône est mise à jour par JS au chargement -->
+        <i class="fa-solid text-xl" id="themeIcon"></i>
+    </button>
+
     <!-- Header & Title -->
     <header class="w-full max-w-6xl mb-12">
         <div class="flex items-center justify-center space-x-2">
             <h1 class="text-4xl md:text-5xl font-extrabold tracking-tighter text-[var(--color-text-dark)]">TRADUCTEUR</h1>
             <h1 class="text-4xl md:text-5xl font-extrabold tracking-tighter text-[var(--color-accent-cyan)] border-b-4 border-[var(--color-accent-cyan)] pb-1">MORSE</h1>
         </div>
-        <p class="text-center text-sm text-gray-400 mt-2 mono-code">CONVERTISSEUR ANALOGIQUE-NUMÉRIQUE</p>
+        <p class="text-center text-sm text-[var(--color-text-subtle)] mt-2 mono-code">CONVERTISSEUR ANALOGIQUE-NUMÉRIQUE</p>
     </header>
 
     <!-- Signal Indicator Area -->
     <div class="flex flex-col items-center mb-8">
         <div id="signal-bulb" class="flex items-center justify-center cursor-pointer" title="Indicateur Visuel">
-            <i class="fa-solid fa-satellite-dish text-3xl text-gray-500 transition-colors" id="bulb-icon"></i>
+            <i class="fa-solid fa-satellite-dish text-3xl text-[var(--color-text-subtle)] transition-colors" id="bulb-icon"></i>
         </div>
         <div class="text-sm font-bold mt-2 tracking-widest" id="playing-status">PRÊT</div>
     </div>
 
     <!-- Mode Selector (Functional Toggle) -->
-    <div class="flex mb-8 bg-white p-1 rounded-lg border border-[var(--color-border)] shadow-sm">
+    <div class="flex mb-8 p-1 rounded-xl border border-[var(--color-border)] shadow-md bg-[var(--color-card-bg)]">
         <button id="mode-text-to-morse" class="mode-button px-4 py-2 rounded-lg text-sm font-semibold transition-colors mode-toggle-active" onclick="setMode('textToMorse')">
             Texte → Code Morse
         </button>
-        <button id="mode-morse-to-text" class="mode-button px-4 py-2 rounded-lg text-sm font-semibold text-gray-500 hover:bg-gray-50 transition-colors" onclick="setMode('morseToText')">
+        <button id="mode-morse-to-text" class="mode-button px-4 py-2 rounded-lg text-sm font-semibold text-[var(--color-text-subtle)] hover:bg-[var(--color-gray-50)] transition-colors" onclick="setMode('morseToText')">
             Code Morse → Texte
         </button>
     </div>
@@ -156,33 +203,33 @@
     <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-6 relative mb-8">
 
         <!-- Input Section -->
-        <div class="flex flex-col h-[350px] code-container bg-[var(--color-card-bg)] rounded-xl overflow-hidden">
-            <div class="flex justify-between items-center p-4 border-b border-[var(--color-border)] bg-gray-50">
-                <label id="inputLabel" class="text-xs font-bold uppercase text-[var(--color-text-dark)] tracking-wider">ENTRÉE TEXTE</label>
-                <button onclick="clearInput('inputText')" class="text-gray-400 hover:text-red-500 text-sm transition-colors" title="Effacer">
+        <div class="flex flex-col h-[350px] code-container rounded-xl overflow-hidden">
+            <div class="flex justify-between items-center p-4 container-header">
+                <label id="inputLabel" class="text-xs font-bold uppercase text-[var(--color-text-subtle)] tracking-wider">ENTRÉE TEXTE</label>
+                <button onclick="clearInput('inputText')" class="text-[var(--color-text-subtle)] hover:text-red-500 text-sm transition-colors" title="Effacer">
                     <i class="fa-solid fa-eraser"></i>
                 </button>
             </div>
             <textarea 
                 id="inputText" 
                 placeholder="Commencez à taper..." 
-                class="w-full flex-grow p-4 outline-none resize-none mono-code text-lg placeholder-gray-400 border-0 focus:ring-0"
+                class="w-full flex-grow p-4 outline-none resize-none mono-code text-lg placeholder-[var(--color-text-subtle)] border-0 focus:ring-0"
                 oninput="handleInput()"
             ></textarea>
         </div>
 
         <!-- Output Section -->
-        <div class="flex flex-col h-[350px] code-container bg-[var(--color-card-bg)] rounded-xl overflow-hidden">
-            <div class="flex justify-between items-center p-4 border-b border-[var(--color-border)] bg-gray-50">
-                <label id="outputLabel" class="text-xs font-bold uppercase text-[var(--color-text-dark)] tracking-wider">SORTIE CODE MORSE</label>
-                 <button onclick="copyToClipboard('outputText', 'Code Copié !')" class="text-[var(--color-accent-cyan)] hover:text-cyan-400 text-sm transition-colors" title="Copier">
+        <div class="flex flex-col h-[350px] code-container rounded-xl overflow-hidden">
+            <div class="flex justify-between items-center p-4 container-header">
+                <label id="outputLabel" class="text-xs font-bold uppercase text-[var(--color-text-subtle)] tracking-wider">SORTIE CODE MORSE</label>
+                 <button onclick="copyToClipboard('outputText', 'Code Copié !')" class="text-[var(--color-accent-cyan)] hover:opacity-75 text-sm transition-colors" title="Copier">
                     <i class="fa-solid fa-copy"></i>
                 </button>
             </div>
             <textarea 
                 id="outputText" 
                 placeholder="Résultat de la conversion..." 
-                class="w-full flex-grow p-4 outline-none resize-none mono-code text-xl text-[var(--color-accent-cyan)] placeholder-gray-400 border-0 focus:ring-0 leading-relaxed"
+                class="w-full flex-grow p-4 outline-none resize-none mono-code text-xl text-[var(--color-accent-cyan)] placeholder-[var(--color-text-subtle)] border-0 focus:ring-0 leading-relaxed"
                 readonly
             ></textarea>
         </div>
@@ -192,57 +239,54 @@
     <div class="w-full max-w-6xl p-4 bg-[var(--color-card-bg)] rounded-xl shadow-lg border border-[var(--color-border)] mb-8">
         
         <!-- Top Row: WPM and Flash -->
-        <div class="flex justify-between items-center pb-4 mb-4 border-b border-gray-100">
+        <div class="flex justify-between items-center pb-4 mb-4 border-b border-[var(--color-border)]">
              <div class="flex items-center space-x-4 w-full md:w-1/2 md:pr-4">
-                <label for="wpm" class="text-sm font-bold text-gray-700 whitespace-nowrap">Vitesse WPM (<span id="wpmValue">20</span>):</label>
-                <input type="range" id="wpm" min="5" max="40" value="20" class="w-full h-2 accent-[var(--color-accent-cyan)] cursor-pointer rounded-lg bg-gray-200">
+                <label for="wpm" class="text-sm font-bold text-[var(--color-text-subtle)] whitespace-nowrap">Vitesse WPM (<span id="wpmValue">20</span>):</label>
+                <input type="range" id="wpm" min="5" max="40" value="20" class="w-full h-2 accent-[var(--color-accent-cyan)] cursor-pointer rounded-lg bg-[var(--color-border)]">
              </div>
 
              <div class="hidden md:flex space-x-3">
                  <!-- Toggle Mute -->
-                <button id="muteToggleBtn" onclick="toggleMute()" class="btn-action bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center space-x-2">
+                <button id="muteToggleBtn" onclick="toggleMute()" class="btn-action bg-[var(--color-gray-50)] hover:bg-[var(--color-border)] text-[var(--color-text-subtle)] flex items-center space-x-2">
                     <i class="fa-solid fa-volume-high text-lg" id="muteIcon"></i>
                     <span class="hidden sm:inline">Muet</span>
                 </button>
 
                  <!-- Toggle Flash -->
-                <button id="flashToggleBtn" onclick="toggleFlashlightMode()" class="btn-action bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center space-x-2">
+                <button id="flashToggleBtn" onclick="toggleFlashlightMode()" class="btn-action bg-[var(--color-gray-50)] hover:bg-[var(--color-border)] text-[var(--color-text-subtle)] flex items-center space-x-2">
                     <i class="fa-solid fa-mobile-screen-button text-lg" id="flashIcon"></i>
                     <span class="hidden sm:inline">Flash</span>
                 </button>
             </div>
         </div>
 
-        <!-- Bottom Row: Play/Stop/Loop (Visible sur mobile également) -->
+        <!-- Bottom Row: Play/Stop/Loop -->
         <div class="flex justify-between items-center">
             
             <!-- Play/Stop Buttons -->
             <div class="flex space-x-3">
-                <button id="playBtn" onclick="togglePlayStop('play')" class="btn-action bg-[var(--color-cta-green)] hover:bg-emerald-500 text-white flex items-center space-x-2">
+                <button id="playBtn" onclick="togglePlayStop('play')" class="btn-action bg-[var(--color-cta-green)] hover:opacity-90 text-white flex items-center space-x-2">
                     <i class="fa-solid fa-play text-lg"></i>
                     <span>JOUER SIGNAL</span>
                 </button>
-                <button id="stopBtn" onclick="togglePlayStop('stop')" class="btn-action bg-red-500 hover:bg-red-400 text-white flex items-center space-x-2 hidden">
+                <button id="stopBtn" onclick="togglePlayStop('stop')" class="btn-action bg-red-500 hover:opacity-90 text-white flex items-center space-x-2 hidden">
                     <i class="fa-solid fa-stop text-lg"></i>
                     <span>ARRÊTER</span>
                 </button>
             </div>
 
             <!-- Loop Toggle -->
-            <button id="loopToggleBtn" onclick="toggleLoop()" class="btn-action bg-gray-100 hover:bg-gray-200 text-gray-700 flex items-center space-x-2">
+            <button id="loopToggleBtn" onclick="toggleLoop()" class="btn-action bg-[var(--color-gray-50)] hover:bg-[var(--color-border)] text-[var(--color-text-subtle)] flex items-center space-x-2">
                 <i class="fa-solid fa-sync text-lg" id="loopIcon"></i>
                 <span id="loopStatus" class="font-bold hidden sm:inline">BOUCLE OFF</span>
             </button>
             
-            <!-- Mobile Toggles -->
+            <!-- Mobile Toggles (Mute/Flash) -->
             <div class="flex md:hidden space-x-3">
-                 <!-- Toggle Mute Mobile -->
-                <button id="muteToggleBtnMobile" onclick="toggleMute()" class="btn-action bg-gray-100 hover:bg-gray-200 text-gray-700">
+                <button id="muteToggleBtnMobile" onclick="toggleMute()" class="btn-action bg-[var(--color-gray-50)] hover:bg-[var(--color-border)] text-[var(--color-text-subtle)]">
                     <i class="fa-solid fa-volume-high text-lg" id="muteIconMobile"></i>
                 </button>
-
-                 <!-- Toggle Flash Mobile -->
-                <button id="flashToggleBtnMobile" onclick="toggleFlashlightMode()" class="btn-action bg-gray-100 hover:bg-gray-200 text-gray-700">
+                <button id="flashToggleBtnMobile" onclick="toggleFlashlightMode()" class="btn-action bg-[var(--color-gray-50)] hover:bg-[var(--color-border)] text-[var(--color-text-subtle)]">
                     <i class="fa-solid fa-mobile-screen-button text-lg" id="flashIconMobile"></i>
                 </button>
             </div>
@@ -252,7 +296,7 @@
     <!-- Dictionary Reference Table (Collapsible) -->
     <div class="w-full max-w-6xl mt-4 border border-[var(--color-border)] rounded-xl overflow-hidden shadow-lg">
         <!-- Header with Toggle Button -->
-        <button onclick="toggleDictionary()" class="w-full flex justify-between items-center p-4 bg-white hover:bg-gray-50 transition-colors cursor-pointer">
+        <button onclick="toggleDictionary()" class="w-full flex justify-between items-center p-4 bg-[var(--color-card-bg)] hover:bg-[var(--color-gray-50)] transition-colors cursor-pointer">
             <h2 class="text-xl font-bold uppercase tracking-wider text-[var(--color-text-dark)]">RÉFÉRENCE DU CODE MORSE INTERNATIONAL</h2>
             <i class="fa-solid fa-chevron-up text-[var(--color-accent-cyan)] text-lg" id="toggle-icon"></i>
         </button>
@@ -291,6 +335,8 @@
         const REVERSE_MORSE = Object.fromEntries(Object.entries(MORSE_CODE).map(([k, v]) => [v, k]));
 
         // --- DOM ELEMENTS & STATE ---
+        const html = document.documentElement;
+        const themeIcon = document.getElementById('themeIcon');
         const inputText = document.getElementById('inputText');
         const outputText = document.getElementById('outputText');
         const wpmInput = document.getElementById('wpm');
@@ -306,18 +352,12 @@
         const muteIconMobile = document.getElementById('muteIconMobile');
         const flashIcon = document.getElementById('flashIcon');
         const flashIconMobile = document.getElementById('flashIconMobile');
-        const flashToggleBtn = document.getElementById('flashToggleBtn');
-        const muteToggleBtn = document.getElementById('muteToggleBtn');
-        const muteToggleBtnMobile = document.getElementById('muteToggleBtnMobile');
-        const flashToggleBtnMobile = document.getElementById('flashToggleBtnMobile');
+        const morseDictionaryContainer = document.getElementById('morseDictionaryContainer');
+        const morseDictionary = document.getElementById('morseDictionary');
+        const toggleIcon = document.getElementById('toggle-icon');
+        // FIX: Déclaration des variables manquantes pour les boutons de mode
         const modeTextToMorse = document.getElementById('mode-text-to-morse');
         const modeMorseToText = document.getElementById('mode-morse-to-text');
-        const inputLabel = document.getElementById('inputLabel');
-        const outputLabel = document.getElementById('outputLabel');
-        const morseDictionary = document.getElementById('morseDictionary');
-        const morseDictionaryContainer = document.getElementById('morseDictionaryContainer');
-        const toggleIcon = document.getElementById('toggle-icon');
-
 
         let audioCtx = null;
         let isPlaying = false;
@@ -326,9 +366,54 @@
         let isMuted = false;
         let isFlashEnabled = false;
         let currentMode = 'textToMorse';
-        let isDictionaryOpen = false; // Dictionnaire fermé par défaut
+        let isDictionaryOpen = false; 
         
         const FIXED_FREQUENCY = 600;
+
+        // --- THEME MANAGEMENT ---
+        function toggleTheme() {
+            const currentTheme = html.classList.contains('theme-dark') ? 'theme-dark' : 'theme-light';
+            const newTheme = currentTheme === 'theme-light' ? 'theme-dark' : 'theme-light';
+            
+            html.classList.remove(currentTheme);
+            html.classList.add(newTheme);
+
+            // Mise à jour de l'icône
+            if (newTheme === 'theme-dark') {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+                showToast("Thème Sombre Activé");
+            } else {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+                showToast("Thème Clair Activé");
+            }
+
+            // Optionnel : Stocker la préférence (non utilisé ici pour simplicité)
+            // localStorage.setItem('theme', newTheme);
+        }
+
+        function applyInitialTheme() {
+            // L'état initial est 'theme-light', donc l'icône doit être 'fa-moon' (pour switcher au sombre)
+            // Si l'utilisateur préfère le clair, l'icône est la lune
+            themeIcon.classList.add('fa-moon');
+            html.classList.add('theme-light');
+            
+            // Si on voulait une persistance:
+            /*
+            const savedTheme = localStorage.getItem('theme') || 'theme-light';
+            html.classList.remove('theme-light', 'theme-dark');
+            html.classList.add(savedTheme);
+            if (savedTheme === 'theme-dark') {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+            } else {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+            }
+            */
+        }
+
 
         // --- INITIALIZATION ---
         wpmInput.addEventListener('input', () => {
@@ -338,14 +423,14 @@
         setMode(currentMode);
         generateDictionaryTable(); 
         
-        // Initial setup for the dictionary (chevron down)
+        // Dictionnaire fermé par défaut
         toggleIcon.classList.add('rotated'); 
+        applyInitialTheme();
 
 
         function generateDictionaryTable() {
-            morseDictionary.innerHTML = ''; // Clear previous content
+            morseDictionary.innerHTML = ''; 
             
-            // Filter out the space character for visual clarity in the table
             const filteredMorse = Object.entries(MORSE_CODE).filter(([char, code]) => char !== ' ');
 
             filteredMorse.forEach(([char, code]) => {
@@ -416,14 +501,17 @@
             currentMode = mode;
             
             // Reset styles
-            [modeTextToMorse, modeMorseToText].forEach(btn => {
-                btn.classList.remove('mode-toggle-active', 'text-white', 'bg-gray-100', 'hover:bg-gray-50', 'text-gray-500');
-                btn.classList.add('text-gray-500', 'hover:bg-gray-50');
+            const allModeButtons = [modeTextToMorse, modeMorseToText];
+            allModeButtons.forEach(btn => {
+                btn.classList.remove('mode-toggle-active');
+                btn.classList.remove('text-white');
+                btn.classList.add('text-[var(--color-text-subtle)]');
+                btn.classList.add('hover:bg-[var(--color-gray-50)]');
             });
 
             if (mode === 'textToMorse') {
                 modeTextToMorse.classList.add('mode-toggle-active', 'text-white');
-                modeTextToMorse.classList.remove('text-gray-500');
+                modeTextToMorse.classList.remove('text-[var(--color-text-subtle)]');
                 inputLabel.textContent = "ENTRÉE TEXTE";
                 outputLabel.textContent = "SORTIE CODE MORSE";
                 inputText.placeholder = "Commencez à taper votre message ici...";
@@ -431,7 +519,7 @@
 
             } else {
                 modeMorseToText.classList.add('mode-toggle-active', 'text-white');
-                modeMorseToText.classList.remove('text-gray-500');
+                modeMorseToText.classList.remove('text-[var(--color-text-subtle)]');
                 inputLabel.textContent = "ENTRÉE CODE MORSE";
                 outputLabel.textContent = "SORTIE TEXTE";
                 inputText.placeholder = "Entrez votre code Morse ici (. - /)...";
@@ -532,6 +620,7 @@
                 toggleSignal(false); 
                 updatePlayUI('stop');
                 showToast("Signal arrêté");
+                // Attendre brièvement pour permettre la suspension du contexte audio
                 setTimeout(() => { if(audioCtx) audioCtx.resume(); }, 100);
             }
         }
@@ -571,8 +660,8 @@
             [loopToggleBtn].forEach(btn => {
                 btn.classList.toggle('bg-[var(--color-accent-cyan)]', isLoopEnabled);
                 btn.classList.toggle('text-white', isLoopEnabled);
-                btn.classList.toggle('bg-gray-100', !isLoopEnabled);
-                btn.classList.toggle('text-gray-700', !isLoopEnabled);
+                btn.classList.toggle('bg-[var(--color-gray-50)]', !isLoopEnabled);
+                btn.classList.toggle('text-[var(--color-text-subtle)]', !isLoopEnabled);
             });
             loopStatusDisplay.textContent = isLoopEnabled ? "BOUCLE ON" : "BOUCLE OFF";
             loopIcon.classList.toggle('fa-spin', isLoopEnabled);
@@ -593,8 +682,8 @@
             buttons.forEach(btn => {
                 btn.classList.toggle('bg-red-500', isMuted);
                 btn.classList.toggle('text-white', isMuted);
-                btn.classList.toggle('bg-gray-100', !isMuted);
-                btn.classList.toggle('text-gray-700', !isMuted);
+                btn.classList.toggle('bg-[var(--color-gray-50)]', !isMuted);
+                btn.classList.toggle('text-[var(--color-text-subtle)]', !isMuted);
             });
 
 
@@ -604,13 +693,12 @@
         function toggleFlashlightMode() {
              isFlashEnabled = !isFlashEnabled;
              const buttons = [flashToggleBtn, flashToggleBtnMobile];
-             const icons = [flashIcon, flashIconMobile];
-
+             
              buttons.forEach(btn => {
                 btn.classList.toggle('bg-[var(--color-accent-cyan)]', isFlashEnabled);
                 btn.classList.toggle('text-white', isFlashEnabled);
-                btn.classList.toggle('bg-gray-100', !isFlashEnabled);
-                btn.classList.toggle('text-gray-700', !isFlashEnabled);
+                btn.classList.toggle('bg-[var(--color-gray-50)]', !isFlashEnabled);
+                btn.classList.toggle('text-[var(--color-text-subtle)]', !isFlashEnabled);
              });
              
              showToast(isFlashEnabled ? "Lampe Torche Écran : ON" : "Lampe Torche Écran : OFF");
@@ -635,13 +723,16 @@
             stopBtn.classList.toggle('hidden', !disableControls);
 
             inputText.disabled = disableControls;
-            // outputText reste readonly pour ce mode
             wpmInput.disabled = disableControls;
             loopToggleBtn.disabled = disableControls;
-            muteToggleBtn.disabled = disableControls;
-            flashToggleBtn.disabled = disableControls;
-            muteToggleBtnMobile.disabled = disableControls;
-            flashToggleBtnMobile.disabled = disableControls;
+            
+            // On disable tous les boutons de contrôle pour empêcher les clics pendant la lecture
+            document.querySelectorAll('.btn-action, .mode-button').forEach(btn => {
+                // Sauf le bouton Stop
+                if (btn.id !== 'stopBtn') {
+                    btn.disabled = disableControls;
+                }
+            });
 
             playingStatusDisplay.textContent = disableControls ? "TRANSMISSION EN COURS..." : "PRÊT";
             playingStatusDisplay.classList.toggle('text-red-500', disableControls);
